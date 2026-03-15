@@ -1,0 +1,220 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;fstream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;vector&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;algorithm&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cmath&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iomanip&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;unistd.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;sys/time.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;x86intrin.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;sched.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;pthread.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstring&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstdlib&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;ctime&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstdint&gt;</font>
+
+<font color="#008080">uint64_t</font> <b><font color="#000000">getMicrotime</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">struct</font></b> <font color="#008080">timeval</font> tv<font color="#990000">;</font>
+    <b><font color="#000000">gettimeofday</font></b><font color="#990000">(&amp;</font>tv<font color="#990000">,</font> NULL<font color="#990000">);</font>
+    <b><font color="#0000FF">return</font></b> tv<font color="#990000">.</font>tv_sec <font color="#990000">*</font> 1000000ULL <font color="#990000">+</font> tv<font color="#990000">.</font>tv_usec<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#008080">uint64_t</font> <b><font color="#000000">getNanotime</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">struct</font></b> <font color="#008080">timespec</font> ts<font color="#990000">;</font>
+    <b><font color="#000000">clock_gettime</font></b><font color="#990000">(</font>CLOCK_MONOTONIC<font color="#990000">,</font> <font color="#990000">&amp;</font>ts<font color="#990000">);</font>
+    <b><font color="#0000FF">return</font></b> ts<font color="#990000">.</font>tv_sec <font color="#990000">*</font> 1000000000ULL <font color="#990000">+</font> ts<font color="#990000">.</font>tv_nsec<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#008080">uint64_t</font> <b><font color="#000000">rdtsc</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#000000">__rdtsc</font></b><font color="#990000">();</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">setRealtimePriority</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <font color="#008080">sched_param</font> sch_params<font color="#990000">;</font>
+    sch_params<font color="#990000">.</font>sched_priority <font color="#990000">=</font> <b><font color="#000000">sched_get_priority_max</font></b><font color="#990000">(</font>SCHED_FIFO<font color="#990000">);</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font><b><font color="#000000">pthread_setschedparam</font></b><font color="#990000">(</font><b><font color="#000000">pthread_self</font></b><font color="#990000">(),</font> SCHED_FIFO<font color="#990000">,</font> <font color="#990000">&amp;</font>sch_params<font color="#990000">))</font> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cerr <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Failed to set realtime priority"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">setAffinity</font></b><font color="#990000">(</font><font color="#009900">int</font> coreId<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <font color="#008080">cpu_set_t</font> cpuset<font color="#990000">;</font>
+    <b><font color="#000000">CPU_ZERO</font></b><font color="#990000">(&amp;</font>cpuset<font color="#990000">);</font>
+    <b><font color="#000000">CPU_SET</font></b><font color="#990000">(</font>coreId<font color="#990000">,</font> <font color="#990000">&amp;</font>cpuset<font color="#990000">);</font>
+
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font><b><font color="#000000">pthread_setaffinity_np</font></b><font color="#990000">(</font><b><font color="#000000">pthread_self</font></b><font color="#990000">(),</font> <b><font color="#0000FF">sizeof</font></b><font color="#990000">(</font>cpu_set_t<font color="#990000">),</font> <font color="#990000">&amp;</font>cpuset<font color="#990000">))</font> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cerr <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Failed to set CPU affinity"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">sieveOfEratosthenes</font></b><font color="#990000">(</font><font color="#009900">int</font> n<font color="#990000">)</font> <font color="#FF0000">{</font>
+    std<font color="#990000">::</font><font color="#008080">vector&lt;bool&gt;</font> <b><font color="#000000">isPrime</font></b><font color="#990000">(</font>n <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">,</font> <b><font color="#0000FF">true</font></b><font color="#990000">);</font>
+    isPrime<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#990000">=</font> isPrime<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">2</font><font color="#990000">;</font> i <font color="#990000">*</font> i <font color="#990000">&lt;=</font> n<font color="#990000">;</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>isPrime<font color="#990000">[</font>i<font color="#990000">])</font> <font color="#FF0000">{</font>
+            <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> j <font color="#990000">=</font> i <font color="#990000">*</font> i<font color="#990000">;</font> j <font color="#990000">&lt;=</font> n<font color="#990000">;</font> j <font color="#990000">+=</font> i<font color="#990000">)</font> <font color="#FF0000">{</font>
+                isPrime<font color="#990000">[</font>j<font color="#990000">]</font> <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+            <font color="#FF0000">}</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<b><font color="#0000FF">class</font></b> <font color="#008080">MeasurementData</font> <font color="#FF0000">{</font>
+<b><font color="#0000FF">private</font></b><font color="#990000">:</font>
+    std<font color="#990000">::</font><font color="#008080">vector&lt;double&gt;</font> gettimeMeasurements<font color="#990000">;</font>
+    std<font color="#990000">::</font><font color="#008080">vector&lt;double&gt;</font> clockMeasurements<font color="#990000">;</font>
+    std<font color="#990000">::</font><font color="#008080">vector&lt;double&gt;</font> tscMeasurements<font color="#990000">;</font>
+    <font color="#009900">double</font> cpuFreqGHz<font color="#990000">;</font>
+    <font color="#009900">int</font> arraySize<font color="#990000">;</font>
+    <font color="#009900">int</font> numMeasurements<font color="#990000">;</font>
+
+<b><font color="#0000FF">public</font></b><font color="#990000">:</font>
+    <b><font color="#000000">MeasurementData</font></b><font color="#990000">(</font><font color="#009900">int</font> n<font color="#990000">,</font> <font color="#009900">int</font> k<font color="#990000">)</font> <font color="#990000">:</font>
+        <b><font color="#000000">gettimeMeasurements</font></b><font color="#990000">(),</font>
+        <b><font color="#000000">clockMeasurements</font></b><font color="#990000">(),</font>
+        <b><font color="#000000">tscMeasurements</font></b><font color="#990000">(),</font>
+        <b><font color="#000000">cpuFreqGHz</font></b><font color="#990000">(</font><font color="#993399">0.0</font><font color="#990000">),</font>
+        <b><font color="#000000">arraySize</font></b><font color="#990000">(</font>n<font color="#990000">),</font>
+        <b><font color="#000000">numMeasurements</font></b><font color="#990000">(</font>k<font color="#990000">)</font> <font color="#FF0000">{}</font>
+
+
+    <font color="#009900">void</font> <b><font color="#000000">setCpuFreq</font></b><font color="#990000">(</font><font color="#009900">double</font> freq<font color="#990000">)</font> <font color="#FF0000">{</font>
+        cpuFreqGHz <font color="#990000">=</font> freq<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">addGettimeMeasurement</font></b><font color="#990000">(</font><font color="#009900">double</font> value<font color="#990000">)</font> <font color="#FF0000">{</font>
+        gettimeMeasurements<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font>value<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">addClockMeasurement</font></b><font color="#990000">(</font><font color="#009900">double</font> value<font color="#990000">)</font> <font color="#FF0000">{</font>
+        clockMeasurements<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font>value<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">addTscMeasurement</font></b><font color="#990000">(</font><font color="#009900">double</font> value<font color="#990000">)</font> <font color="#FF0000">{</font>
+        tscMeasurements<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font>value<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">saveToXML</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> std<font color="#990000">::</font>string<font color="#990000">&amp;</font> filename<font color="#990000">)</font> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font><font color="#008080">ofstream</font> <b><font color="#000000">file</font></b><font color="#990000">(</font>filename<font color="#990000">);</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(!</font>file<font color="#990000">.</font><b><font color="#000000">is_open</font></b><font color="#990000">())</font> <font color="#FF0000">{</font>
+            std<font color="#990000">::</font>cerr <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Error: Cannot open file "</font> <font color="#990000">&lt;&lt;</font> filename <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" for writing"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            <b><font color="#0000FF">return</font></b><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;?xml version=</font><font color="#CC33CC">\"</font><font color="#FF0000">1.0</font><font color="#CC33CC">\"</font><font color="#FF0000"> encoding=</font><font color="#CC33CC">\"</font><font color="#FF0000">UTF-8</font><font color="#CC33CC">\"</font><font color="#FF0000">?&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;measurements&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;system&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;cpu_freq_ghz&gt;"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">3</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> cpuFreqGHz <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/cpu_freq_ghz&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;array_size&gt;"</font> <font color="#990000">&lt;&lt;</font> arraySize <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/array_size&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;num_measurements&gt;"</font> <font color="#990000">&lt;&lt;</font> numMeasurements <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/num_measurements&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/system&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;method name=</font><font color="#CC33CC">\"</font><font color="#FF0000">gettimeofday</font><font color="#CC33CC">\"</font><font color="#FF0000"> unit=</font><font color="#CC33CC">\"</font><font color="#FF0000">ms</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> gettimeMeasurements<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+            file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;measurement index=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;"</font>
+                 <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> gettimeMeasurements<font color="#990000">[</font>i<font color="#990000">]</font>
+                 <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/measurement&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/method&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;method name=</font><font color="#CC33CC">\"</font><font color="#FF0000">clock_gettime</font><font color="#CC33CC">\"</font><font color="#FF0000"> unit=</font><font color="#CC33CC">\"</font><font color="#FF0000">ms</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> clockMeasurements<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+            file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;measurement index=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;"</font>
+                 <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> clockMeasurements<font color="#990000">[</font>i<font color="#990000">]</font>
+                 <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/measurement&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/method&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;method name=</font><font color="#CC33CC">\"</font><font color="#FF0000">rdtsc</font><font color="#CC33CC">\"</font><font color="#FF0000"> unit=</font><font color="#CC33CC">\"</font><font color="#FF0000">ms</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> tscMeasurements<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+            file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;measurement index=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000">&gt;"</font>
+                 <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> tscMeasurements<font color="#990000">[</font>i<font color="#990000">]</font>
+                 <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/measurement&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/method&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/measurements&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        file<font color="#990000">.</font><b><font color="#000000">close</font></b><font color="#990000">();</font>
+
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Results saved to "</font> <font color="#990000">&lt;&lt;</font> filename <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <b><font color="#000000">setRealtimePriority</font></b><font color="#990000">();</font>
+    <b><font color="#000000">setAffinity</font></b><font color="#990000">(</font><font color="#993399">0</font><font color="#990000">);</font>
+
+    <b><font color="#0000FF">const</font></b> <font color="#009900">int</font> K <font color="#990000">=</font> <font color="#993399">10</font><font color="#990000">;</font>
+    <b><font color="#0000FF">const</font></b> <font color="#009900">int</font> N <font color="#990000">=</font> <font color="#993399">50000</font><font color="#990000">;</font>
+
+    <font color="#008080">MeasurementData</font> <b><font color="#000000">data</font></b><font color="#990000">(</font>N<font color="#990000">,</font> K<font color="#990000">);</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Algorithm: Sieve of Eratosthenes (N = "</font> <font color="#990000">&lt;&lt;</font> N <font color="#990000">&lt;&lt;</font> <font color="#FF0000">")"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Number of measurements: "</font> <font color="#990000">&lt;&lt;</font> K <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+    <b><font color="#000000">sieveOfEratosthenes</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"1. Measurement using gettimeofday():"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> K<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">uint64_t</font> start <font color="#990000">=</font> <b><font color="#000000">getMicrotime</font></b><font color="#990000">();</font>
+
+        <b><font color="#000000">sieveOfEratosthenes</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+
+        <font color="#008080">uint64_t</font> end <font color="#990000">=</font> <b><font color="#000000">getMicrotime</font></b><font color="#990000">();</font>
+        <font color="#009900">double</font> elapsedMs <font color="#990000">=</font> <font color="#990000">(</font>end <font color="#990000">-</font> start<font color="#990000">)</font> <font color="#990000">/</font> <font color="#993399">1000.0</font><font color="#990000">;</font>
+
+        data<font color="#990000">.</font><b><font color="#000000">addGettimeMeasurement</font></b><font color="#990000">(</font>elapsedMs<font color="#990000">);</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Measurement "</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">": "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">3</font><font color="#990000">)</font>
+                  <font color="#990000">&lt;&lt;</font> elapsedMs <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ms"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">2. Measurement using clock_gettime():"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> K<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">uint64_t</font> start <font color="#990000">=</font> <b><font color="#000000">getNanotime</font></b><font color="#990000">();</font>
+
+        <b><font color="#000000">sieveOfEratosthenes</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+
+        <font color="#008080">uint64_t</font> end <font color="#990000">=</font> <b><font color="#000000">getNanotime</font></b><font color="#990000">();</font>
+        <font color="#009900">double</font> elapsedMs <font color="#990000">=</font> <font color="#990000">(</font>end <font color="#990000">-</font> start<font color="#990000">)</font> <font color="#990000">/</font> <font color="#993399">1000000.0</font><font color="#990000">;</font>
+
+        data<font color="#990000">.</font><b><font color="#000000">addClockMeasurement</font></b><font color="#990000">(</font>elapsedMs<font color="#990000">);</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Measurement "</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">": "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">3</font><font color="#990000">)</font>
+                  <font color="#990000">&lt;&lt;</font> elapsedMs <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ms"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#008080">uint64_t</font> tscStart <font color="#990000">=</font> <b><font color="#000000">rdtsc</font></b><font color="#990000">();</font>
+    <b><font color="#000000">usleep</font></b><font color="#990000">(</font><font color="#993399">1000000</font><font color="#990000">);</font>
+    <font color="#008080">uint64_t</font> tscEnd <font color="#990000">=</font> <b><font color="#000000">rdtsc</font></b><font color="#990000">();</font>
+    <font color="#009900">double</font> cpuFreqGHz <font color="#990000">=</font> <font color="#990000">(</font>tscEnd <font color="#990000">-</font> tscStart<font color="#990000">)</font> <font color="#990000">/</font> <font color="#993399">1e9</font><font color="#990000">;</font>
+    data<font color="#990000">.</font><b><font color="#000000">setCpuFreq</font></b><font color="#990000">(</font>cpuFreqGHz<font color="#990000">);</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">3. Measurement using RDTSC (CPU Freq: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> cpuFreqGHz <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GHz):"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> K<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">uint64_t</font> start <font color="#990000">=</font> <b><font color="#000000">rdtsc</font></b><font color="#990000">();</font>
+
+        <b><font color="#000000">sieveOfEratosthenes</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+
+        <font color="#008080">uint64_t</font> end <font color="#990000">=</font> <b><font color="#000000">rdtsc</font></b><font color="#990000">();</font>
+        <font color="#009900">double</font> elapsedMs <font color="#990000">=</font> <font color="#990000">(</font>end <font color="#990000">-</font> start<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>cpuFreqGHz <font color="#990000">*</font> <font color="#993399">1e6</font><font color="#990000">);</font> <i><font color="#9A1900">// конвертируем в миллисекунды</font></i>
+
+        data<font color="#990000">.</font><b><font color="#000000">addTscMeasurement</font></b><font color="#990000">(</font>elapsedMs<font color="#990000">);</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Measurement "</font> <font color="#990000">&lt;&lt;</font> i<font color="#990000">+</font><font color="#993399">1</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">": "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">3</font><font color="#990000">)</font>
+                  <font color="#990000">&lt;&lt;</font> elapsedMs <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ms ("</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>end<font color="#990000">-</font>start<font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ticks)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    data<font color="#990000">.</font><b><font color="#000000">saveToXML</font></b><font color="#990000">(</font><font color="#FF0000">"measurements.xml"</font><font color="#990000">);</font>
+
+    <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>
