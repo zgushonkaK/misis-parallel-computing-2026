@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -11,6 +12,18 @@ const size_t N = 2048;
 const float EPSILON = 1e-1f;
 
 using Matrix = std::vector<std::vector<float>>;
+
+struct Results {
+  std::vector<std::pair<std::string, double>> basicAlgorithms;
+  std::vector<std::pair<int, double>> blockSizes;
+  std::vector<std::pair<int, double>> unrollingFactors;
+  double transposeTime;
+  double multiplyTimeTranspose;
+  double classicTime;
+  std::vector<std::tuple<int, int, double>> combinedResults;
+};
+
+Results globalResults;
 
 void multiplyClassic(const Matrix &A, const Matrix &B, Matrix &C) {
   size_t n = A.size();
@@ -158,11 +171,6 @@ bool compareMatrices(const Matrix &A, const Matrix &B) {
   for (size_t i = 0; i < n; ++i) {
     for (size_t j = 0; j < n; ++j) {
       if (std::fabs(A[i][j] - B[i][j]) > EPSILON) {
-        std::cout << "Mismatch at [" << i << "][" << j
-                  << "]: " << std::setprecision(6) << A[i][j] << " vs "
-                  << std::setprecision(6) << B[i][j]
-                  << " (diff: " << std::fabs(A[i][j] - B[i][j]) << ")"
-                  << std::endl;
         return false;
       }
     }
@@ -228,6 +236,8 @@ void measureAndPrint(const std::string &name, const Matrix &A, const Matrix &B,
   double seconds = decorator(A, B, C);
   double gflops = (2.0 * N * N * N) / (seconds * 1e9);
 
+  globalResults.basicAlgorithms.push_back({name, gflops});
+
   std::cout << std::left << std::setw(40) << name << " time: " << std::setw(8)
             << std::fixed << std::setprecision(2) << seconds << " s"
             << " (" << std::setw(6) << std::fixed << std::setprecision(2)
@@ -290,7 +300,24 @@ void testBlockSizeVariations(const Matrix &A, const Matrix &B) {
     if (S > static_cast<int>(N))
       continue;
     Matrix C = createMatrix(N);
-    measureAndPrintWithParam("Block", A, B, C, multiplyBlock, S);
+    setZero(C);
+    auto start = std::chrono::high_resolution_clock::now();
+    multiplyBlock(A, B, C, S);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    double seconds = duration.count() / 1'000'000.0;
+    double gflops = (2.0 * N * N * N) / (seconds * 1e9);
+
+    globalResults.blockSizes.push_back({S, gflops});
+
+    std::cout << std::left << std::setw(35)
+              << "Block (S=" + std::to_string(S) + ")"
+              << " time: " << std::setw(8) << std::fixed << std::setprecision(2)
+              << seconds << " s"
+              << " (" << std::setw(6) << std::fixed << std::setprecision(2)
+              << gflops << " GFLOPS)" << std::endl;
   }
 }
 
@@ -298,7 +325,16 @@ void testLoopUnrolling(const Matrix &A, const Matrix &B) {
   std::cout << "\nTesting loop unrolling (buffered method)" << std::endl;
 
   Matrix C_base = createMatrix(N);
-  measureAndPrint("Buffered (base)", A, B, C_base, multiplyBuffered);
+  auto decorator = make_decorator(multiplyBuffered);
+  double base_seconds = decorator(A, B, C_base);
+  double base_gflops = (2.0 * N * N * N) / (base_seconds * 1e9);
+  globalResults.unrollingFactors.push_back({1, base_gflops});
+
+  std::cout << std::left << std::setw(35) << "Buffered (M=1)"
+            << " time: " << std::setw(8) << std::fixed << std::setprecision(2)
+            << base_seconds << " s"
+            << " (" << std::setw(6) << std::fixed << std::setprecision(2)
+            << base_gflops << " GFLOPS)" << std::endl;
 
   std::vector<int> unrollFactors = {2, 4, 8, 16};
 
@@ -332,15 +368,12 @@ void testLoopUnrolling(const Matrix &A, const Matrix &B) {
     double seconds = duration.count() / 1'000'000.0;
     double gflops = (2.0 * N * N * N) / (seconds * 1e9);
 
+    globalResults.unrollingFactors.push_back({M, gflops});
+
     std::cout << std::left << std::setw(35) << name << " time: " << std::setw(8)
               << std::fixed << std::setprecision(2) << seconds << " s"
               << " (" << std::setw(6) << std::fixed << std::setprecision(2)
               << gflops << " GFLOPS)" << std::endl;
-
-    if (!compareMatrices(C_base, C)) {
-      std::cout << "Note: Small differences detected for M=" << M
-                << " (within tolerance)" << std::endl;
-    }
   }
 }
 
@@ -366,6 +399,9 @@ void testTransposeImpact(const Matrix &A, const Matrix &B) {
   double total_seconds = transpose_seconds + multiply_seconds;
   double gflops_total = (2.0 * N * N * N) / (total_seconds * 1e9);
   double gflops_multiply = (2.0 * N * N * N) / (multiply_seconds * 1e9);
+
+  globalResults.transposeTime = transpose_seconds;
+  globalResults.multiplyTimeTranspose = multiply_seconds;
 
   std::cout << "Transpose time: " << transpose_seconds << " s" << std::endl;
   std::cout << "Multiplication time (without transpose): " << multiply_seconds
@@ -429,6 +465,8 @@ void testCombinedOptimizations(const Matrix &A, const Matrix &B) {
       double seconds = duration.count() / 1'000'000.0;
       double gflops = (2.0 * N * N * N) / (seconds * 1e9);
 
+      globalResults.combinedResults.push_back({S, M, gflops});
+
       std::cout << std::left << std::setw(30) << name
                 << " time: " << std::setw(8) << std::fixed
                 << std::setprecision(2) << seconds << " s"
@@ -436,6 +474,71 @@ void testCombinedOptimizations(const Matrix &A, const Matrix &B) {
                 << gflops << " GFLOPS)" << std::endl;
     }
   }
+}
+
+void saveToXML() {
+  std::ofstream file("results.xml");
+
+  file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+  file << "<performance_results>\n";
+  file << "  <matrix_size>" << N << "</matrix_size>\n";
+  file << "  <floating_point_operations>" << (2.0 * N * N * N)
+       << "</floating_point_operations>\n\n";
+
+  file << "  <basic_algorithms>\n";
+  for (const auto &alg : globalResults.basicAlgorithms) {
+    file << "    <algorithm name=\"" << alg.first << "\" gflops=\""
+         << alg.second << "\" />\n";
+  }
+  file << "  </basic_algorithms>\n\n";
+
+  file << "  <block_size_results>\n";
+  for (const auto &bs : globalResults.blockSizes) {
+    file << "    <block size=\"" << bs.first << "\" gflops=\"" << bs.second
+         << "\" />\n";
+  }
+  file << "  </block_size_results>\n\n";
+
+  file << "  <unrolling_results>\n";
+  for (const auto &ur : globalResults.unrollingFactors) {
+    file << "    <unroll_factor m=\"" << ur.first << "\" gflops=\"" << ur.second
+         << "\" />\n";
+  }
+  file << "  </unrolling_results>\n\n";
+
+  file << "  <transpose_impact>\n";
+  file << "    <transpose_time>" << globalResults.transposeTime
+       << "</transpose_time>\n";
+  file << "    <multiply_time_without_transpose>"
+       << globalResults.multiplyTimeTranspose
+       << "</multiply_time_without_transpose>\n";
+  double classic_gflops = 0;
+  for (const auto &alg : globalResults.basicAlgorithms) {
+    if (alg.first == "1. Classic")
+      classic_gflops = alg.second;
+  }
+  double transpose_gflops = 0;
+  for (const auto &alg : globalResults.basicAlgorithms) {
+    if (alg.first == "2. With transpose")
+      transpose_gflops = alg.second;
+  }
+  file << "    <classic_gflops>" << classic_gflops << "</classic_gflops>\n";
+  file << "    <transpose_gflops>" << transpose_gflops
+       << "</transpose_gflops>\n";
+  file << "  </transpose_impact>\n\n";
+
+  file << "  <combined_results>\n";
+  for (const auto &comb : globalResults.combinedResults) {
+    file << "    <combined block_size=\"" << std::get<0>(comb)
+         << "\" unroll_factor=\"" << std::get<1>(comb) << "\" gflops=\""
+         << std::get<2>(comb) << "\" />\n";
+  }
+  file << "  </combined_results>\n";
+
+  file << "</performance_results>\n";
+  file.close();
+
+  std::cout << "\nResults saved to results.xml" << std::endl;
 }
 
 int main() {
@@ -467,12 +570,27 @@ int main() {
   measureAndPrint("3. Buffered", A, B, C_buffered, multiplyBuffered);
 
   Matrix C_block = createMatrix(N);
-  measureAndPrintWithParam("4. Block", A, B, C_block, multiplyBlock, 64);
+  setZero(C_block);
+  auto start = std::chrono::high_resolution_clock::now();
+  multiplyBlock(A, B, C_block, 64);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  double seconds = duration.count() / 1'000'000.0;
+  double gflops = (2.0 * N * N * N) / (seconds * 1e9);
+  std::cout << std::left << std::setw(35) << "4. Block (S=64)"
+            << " time: " << std::setw(8) << std::fixed << std::setprecision(2)
+            << seconds << " s"
+            << " (" << std::setw(6) << std::fixed << std::setprecision(2)
+            << gflops << " GFLOPS)" << std::endl;
+  globalResults.basicAlgorithms.push_back({"4. Block", gflops});
 
   testBlockSizeVariations(A, B);
   testLoopUnrolling(A, B);
   testTransposeImpact(A, B);
   testCombinedOptimizations(A, B);
+
+  saveToXML();
 
   return 0;
 }
