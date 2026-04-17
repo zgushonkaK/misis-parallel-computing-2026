@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>main.cpp</title>
+<link rel="stylesheet" type="text/css" href="highlight.css">
+</head>
+<body class="hl">
+<pre class="hl"><span class="hl ppc">#include &lt;iostream&gt;</span>
+<span class="hl ppc">#include &lt;vector&gt;</span>
+<span class="hl ppc">#include &lt;chrono&gt;</span>
+<span class="hl ppc">#include &lt;random&gt;</span>
+<span class="hl ppc">#include &lt;iomanip&gt;</span>
+<span class="hl ppc">#include &lt;cmath&gt;</span>
+<span class="hl ppc">#include &lt;cstring&gt;</span>
+<span class="hl ppc">#include &lt;functional&gt;</span>
+<span class="hl ppc">#include &lt;memory&gt;</span>
+<span class="hl ppc">#include &lt;fstream&gt;</span>
+<span class="hl ppc">#include &lt;algorithm&gt;</span>
+<span class="hl ppc">#include &lt;string&gt;</span>
+<span class="hl ppc">#include &lt;sstream&gt;</span>
+
+<span class="hl kwd">class</span> XMLWriter <span class="hl opt">{</span>
+<span class="hl kwd">private</span><span class="hl opt">:</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>ofstream file<span class="hl opt">;</span>
+    <span class="hl kwb">int</span> indent<span class="hl opt">;</span>
+
+    <span class="hl kwb">void</span> <span class="hl kwd">writeIndent</span><span class="hl opt">() {</span>
+        <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> indent<span class="hl opt">; ++</span>i<span class="hl opt">) {</span>
+            file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;  &quot;</span><span class="hl opt">;</span>
+        <span class="hl opt">}</span>
+    <span class="hl opt">}</span>
+
+<span class="hl kwd">public</span><span class="hl opt">:</span>
+    <span class="hl kwd">XMLWriter</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> filename<span class="hl opt">) :</span> <span class="hl kwd">indent</span><span class="hl opt">(</span><span class="hl num">0</span><span class="hl opt">) {</span>
+        file<span class="hl opt">.</span><span class="hl kwd">open</span><span class="hl opt">(</span>filename<span class="hl opt">);</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&lt;?xml version=</span><span class="hl esc">\&quot;</span><span class="hl sng">1.0</span><span class="hl esc">\&quot;</span> <span class="hl sng">encoding=</span><span class="hl esc">\&quot;</span><span class="hl sng">UTF-8</span><span class="hl esc">\&quot;</span><span class="hl sng">?&gt;</span><span class="hl esc">\n</span><span class="hl sng">&quot;</span><span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl opt">~</span><span class="hl kwd">XMLWriter</span><span class="hl opt">() {</span>
+        <span class="hl kwa">if</span> <span class="hl opt">(</span>file<span class="hl opt">.</span><span class="hl kwd">is_open</span><span class="hl opt">()) {</span>
+            file<span class="hl opt">.</span><span class="hl kwd">close</span><span class="hl opt">();</span>
+        <span class="hl opt">}</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwb">void</span> <span class="hl kwd">openElement</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> name<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> attributes <span class="hl opt">=</span> <span class="hl sng">&quot;&quot;</span><span class="hl opt">) {</span>
+        <span class="hl kwd">writeIndent</span><span class="hl opt">();</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&lt;&quot;</span> <span class="hl opt">&lt;&lt;</span> name<span class="hl opt">;</span>
+        <span class="hl kwa">if</span> <span class="hl opt">(!</span>attributes<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">()) {</span>
+            file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; &quot;</span> <span class="hl opt">&lt;&lt;</span> attributes<span class="hl opt">;</span>
+        <span class="hl opt">}</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&gt;</span><span class="hl esc">\n</span><span class="hl sng">&quot;</span><span class="hl opt">;</span>
+        indent<span class="hl opt">++;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwb">void</span> <span class="hl kwd">closeElement</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> name<span class="hl opt">) {</span>
+        indent<span class="hl opt">--;</span>
+        <span class="hl kwd">writeIndent</span><span class="hl opt">();</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&lt;/&quot;</span> <span class="hl opt">&lt;&lt;</span> name <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&gt;</span><span class="hl esc">\n</span><span class="hl sng">&quot;</span><span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwb">void</span> <span class="hl kwd">writeElement</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> name<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> value<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> attributes <span class="hl opt">=</span> <span class="hl sng">&quot;&quot;</span><span class="hl opt">) {</span>
+        <span class="hl kwd">writeIndent</span><span class="hl opt">();</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&lt;&quot;</span> <span class="hl opt">&lt;&lt;</span> name<span class="hl opt">;</span>
+        <span class="hl kwa">if</span> <span class="hl opt">(!</span>attributes<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">()) {</span>
+            file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; &quot;</span> <span class="hl opt">&lt;&lt;</span> attributes<span class="hl opt">;</span>
+        <span class="hl opt">}</span>
+        file <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&gt;&quot;</span> <span class="hl opt">&lt;&lt;</span> value <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&lt;/&quot;</span> <span class="hl opt">&lt;&lt;</span> name <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;&gt;</span><span class="hl esc">\n</span><span class="hl sng">&quot;</span><span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwb">void</span> <span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> name<span class="hl opt">,</span> <span class="hl kwb">double</span> value<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> unit <span class="hl opt">=</span> <span class="hl sng">&quot;&quot;</span><span class="hl opt">) {</span>
+        <span class="hl kwe">std</span><span class="hl opt">::</span>string attrs<span class="hl opt">;</span>
+        <span class="hl kwa">if</span> <span class="hl opt">(!</span>unit<span class="hl opt">.</span><span class="hl kwd">empty</span><span class="hl opt">()) {</span>
+            attrs <span class="hl opt">=</span> <span class="hl sng">&quot;unit=</span><span class="hl esc">\&quot;</span><span class="hl sng">&quot;</span> <span class="hl opt">+</span> unit <span class="hl opt">+</span> <span class="hl sng">&quot;</span><span class="hl esc">\&quot;</span><span class="hl sng">&quot;</span><span class="hl opt">;</span>
+        <span class="hl opt">}</span>
+        <span class="hl kwd">writeElement</span><span class="hl opt">(</span>name<span class="hl opt">,</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span>value<span class="hl opt">),</span> attrs<span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+<span class="hl opt">};</span>
+
+<span class="hl kwd">template</span> <span class="hl opt">&lt;</span><span class="hl kwd">class</span><span class="hl opt">...</span> Args<span class="hl opt">&gt;</span>
+<span class="hl kwb">struct</span> ExeTime <span class="hl opt">{</span>
+<span class="hl kwd">public</span><span class="hl opt">:</span>
+    <span class="hl kwd">ExeTime</span><span class="hl opt">(</span><span class="hl kwe">std</span><span class="hl opt">::</span>function<span class="hl opt">&lt;</span><span class="hl kwb">void</span><span class="hl opt">(</span>Args<span class="hl opt">...)&gt;</span> func<span class="hl opt">) :</span> <span class="hl kwd">f_</span><span class="hl opt">(</span>func<span class="hl opt">) {}</span>
+
+    <span class="hl kwb">double</span> <span class="hl kwd">operator</span><span class="hl opt">()(</span>Args<span class="hl opt">...</span> args<span class="hl opt">) {</span>
+        <span class="hl kwd">auto</span> start <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span><span class="hl kwe">high_resolution_clock</span><span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+        <span class="hl kwd">f_</span><span class="hl opt">(</span>args<span class="hl opt">...);</span>
+        <span class="hl kwd">auto</span> end <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span><span class="hl kwe">high_resolution_clock</span><span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+
+        <span class="hl kwd">auto</span> duration <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span>duration_cast<span class="hl opt">&lt;</span><span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span>nanoseconds<span class="hl opt">&gt;(</span>end <span class="hl opt">-</span> start<span class="hl opt">);</span>
+        <span class="hl kwa">return</span> duration<span class="hl opt">.</span><span class="hl kwd">count</span><span class="hl opt">() /</span> <span class="hl num">1&#39;000&#39;000&#39;000.0</span><span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+<span class="hl kwd">private</span><span class="hl opt">:</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>function<span class="hl opt">&lt;</span><span class="hl kwb">void</span><span class="hl opt">(</span>Args<span class="hl opt">...)&gt;</span> f_<span class="hl opt">;</span>
+<span class="hl opt">};</span>
+
+<span class="hl kwd">template</span> <span class="hl opt">&lt;</span><span class="hl kwd">class</span><span class="hl opt">...</span> Args<span class="hl opt">&gt;</span>
+ExeTime<span class="hl opt">&lt;</span>Args<span class="hl opt">...&gt;</span> <span class="hl kwd">make_decorator</span><span class="hl opt">(</span><span class="hl kwb">void</span> <span class="hl opt">(*</span>f<span class="hl opt">)(</span>Args<span class="hl opt">...)) {</span>
+    <span class="hl kwa">return</span> ExeTime<span class="hl opt">&lt;</span>Args<span class="hl opt">...&gt;(</span><span class="hl kwe">std</span><span class="hl opt">::</span>function<span class="hl opt">&lt;</span><span class="hl kwb">void</span><span class="hl opt">(</span>Args<span class="hl opt">...)&gt;(</span>f<span class="hl opt">));</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">sequentialSum</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;&amp;</span> arr<span class="hl opt">,</span> <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span><span class="hl opt">&amp;</span> result<span class="hl opt">) {</span>
+    result <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> arr<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>i<span class="hl opt">) {</span>
+        result <span class="hl opt">+=</span> arr<span class="hl opt">[</span>i<span class="hl opt">];</span>
+    <span class="hl opt">}</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">randomSumOnFly</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;&amp;</span> arr<span class="hl opt">,</span> <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span><span class="hl opt">&amp;</span> result<span class="hl opt">) {</span>
+    <span class="hl kwb">static</span> <span class="hl kwa">thread_local</span> <span class="hl kwe">std</span><span class="hl opt">::</span>mt19937 <span class="hl kwd">rng</span><span class="hl opt">(</span><span class="hl kwe">std</span><span class="hl opt">::</span>random_device<span class="hl opt">{}());</span>
+    result <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwb">size_t</span> n <span class="hl opt">=</span> arr<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">();</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> n<span class="hl opt">; ++</span>i<span class="hl opt">) {</span>
+        <span class="hl kwb">size_t</span> idx <span class="hl opt">=</span> <span class="hl kwd">rng</span><span class="hl opt">() %</span> n<span class="hl opt">;</span>
+        result <span class="hl opt">+=</span> arr<span class="hl opt">[</span>idx<span class="hl opt">];</span>
+    <span class="hl opt">}</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">randomSumPreIndexed</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;&amp;</span> arr<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">size_t</span><span class="hl opt">&gt;&amp;</span> indices<span class="hl opt">,</span> <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span><span class="hl opt">&amp;</span> result<span class="hl opt">) {</span>
+    result <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> arr<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>i<span class="hl opt">) {</span>
+        result <span class="hl opt">+=</span> arr<span class="hl opt">[</span>indices<span class="hl opt">[</span>i<span class="hl opt">]];</span>
+    <span class="hl opt">}</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">runSequential</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;&amp;</span> arr<span class="hl opt">) {</span>
+    <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span> result<span class="hl opt">;</span>
+    <span class="hl kwd">sequentialSum</span><span class="hl opt">(</span>arr<span class="hl opt">,</span> result<span class="hl opt">);</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">runRandomOnFly</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;&amp;</span> arr<span class="hl opt">) {</span>
+    <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span> result<span class="hl opt">;</span>
+    <span class="hl kwd">randomSumOnFly</span><span class="hl opt">(</span>arr<span class="hl opt">,</span> result<span class="hl opt">);</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">struct</span> MeasurementResult <span class="hl opt">{</span>
+    <span class="hl kwb">size_t</span> size_bytes<span class="hl opt">;</span>
+    <span class="hl kwb">double</span> sequential_time_ns<span class="hl opt">;</span>
+    <span class="hl kwb">double</span> random_onfly_time_ns<span class="hl opt">;</span>
+    <span class="hl kwb">double</span> random_preindexed_time_ns<span class="hl opt">;</span>
+    <span class="hl kwb">int</span> repeats<span class="hl opt">;</span>
+<span class="hl opt">};</span>
+
+<span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">size_t</span><span class="hl opt">&gt;</span> <span class="hl kwd">generateSizes</span><span class="hl opt">() {</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">size_t</span><span class="hl opt">&gt;</span> sizes<span class="hl opt">;</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> kb <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">;</span> kb <span class="hl opt">&lt;=</span> <span class="hl num">2048</span><span class="hl opt">;</span> kb <span class="hl opt">+=</span> <span class="hl num">64</span><span class="hl opt">) {</span>
+        sizes<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>kb <span class="hl opt">*</span> <span class="hl num">1024</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> mb <span class="hl opt">=</span> <span class="hl num">2</span><span class="hl opt">;</span> mb <span class="hl opt">&lt;=</span> <span class="hl num">32</span><span class="hl opt">;</span> mb <span class="hl opt">+=</span> <span class="hl num">1</span><span class="hl opt">) {</span>
+        sizes<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>mb <span class="hl opt">*</span> <span class="hl num">1024</span> <span class="hl opt">*</span> <span class="hl num">1024</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> mb <span class="hl opt">=</span> <span class="hl num">35</span><span class="hl opt">;</span> mb <span class="hl opt">&lt;=</span> <span class="hl num">150</span><span class="hl opt">;</span> mb <span class="hl opt">+=</span> <span class="hl num">5</span><span class="hl opt">) {</span>
+        sizes<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>mb <span class="hl opt">*</span> <span class="hl num">1024</span> <span class="hl opt">*</span> <span class="hl num">1024</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">sort</span><span class="hl opt">(</span>sizes<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">(),</span> sizes<span class="hl opt">.</span><span class="hl kwd">end</span><span class="hl opt">());</span>
+    sizes<span class="hl opt">.</span><span class="hl kwd">erase</span><span class="hl opt">(</span><span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">unique</span><span class="hl opt">(</span>sizes<span class="hl opt">.</span><span class="hl kwd">begin</span><span class="hl opt">(),</span> sizes<span class="hl opt">.</span><span class="hl kwd">end</span><span class="hl opt">()),</span> sizes<span class="hl opt">.</span><span class="hl kwd">end</span><span class="hl opt">());</span>
+
+    <span class="hl kwa">return</span> sizes<span class="hl opt">;</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">void</span> <span class="hl kwd">saveResultsToXML</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>MeasurementResult<span class="hl opt">&gt;&amp;</span> results<span class="hl opt">,</span> <span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>string<span class="hl opt">&amp;</span> filename<span class="hl opt">) {</span>
+    XMLWriter <span class="hl kwd">writer</span><span class="hl opt">(</span>filename<span class="hl opt">);</span>
+
+    writer<span class="hl opt">.</span><span class="hl kwd">openElement</span><span class="hl opt">(</span><span class="hl sng">&quot;cache_latency_measurements&quot;</span><span class="hl opt">);</span>
+
+    writer<span class="hl opt">.</span><span class="hl kwd">openElement</span><span class="hl opt">(</span><span class="hl sng">&quot;system_info&quot;</span><span class="hl opt">);</span>
+    writer<span class="hl opt">.</span><span class="hl kwd">writeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;cpu_model&quot;</span><span class="hl opt">,</span> <span class="hl sng">&quot;Unknown&quot;</span><span class="hl opt">);</span> <span class="hl slc">// You can add CPU detection</span>
+    writer<span class="hl opt">.</span><span class="hl kwd">writeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;timestamp&quot;</span><span class="hl opt">,</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span><span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">time</span><span class="hl opt">(</span><span class="hl kwd">nullptr</span><span class="hl opt">)));</span>
+    writer<span class="hl opt">.</span><span class="hl kwd">closeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;system_info&quot;</span><span class="hl opt">);</span>
+
+    writer<span class="hl opt">.</span><span class="hl kwd">openElement</span><span class="hl opt">(</span><span class="hl sng">&quot;results&quot;</span><span class="hl opt">);</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwd">auto</span><span class="hl opt">&amp;</span> r <span class="hl opt">:</span> results<span class="hl opt">) {</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">openElement</span><span class="hl opt">(</span><span class="hl sng">&quot;measurement&quot;</span><span class="hl opt">,</span> <span class="hl sng">&quot;size_bytes=</span><span class="hl esc">\&quot;</span><span class="hl sng">&quot;</span> <span class="hl opt">+</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">to_string</span><span class="hl opt">(</span>r<span class="hl opt">.</span>size_bytes<span class="hl opt">) +</span> <span class="hl sng">&quot;</span><span class="hl esc">\&quot;</span><span class="hl sng">&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl sng">&quot;size_kb&quot;</span><span class="hl opt">,</span> r<span class="hl opt">.</span>size_bytes <span class="hl opt">/</span> <span class="hl num">1024.0</span><span class="hl opt">,</span> <span class="hl sng">&quot;KB&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl sng">&quot;sequential_time_ns&quot;</span><span class="hl opt">,</span> r<span class="hl opt">.</span>sequential_time_ns<span class="hl opt">,</span> <span class="hl sng">&quot;ns&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl sng">&quot;random_onfly_time_ns&quot;</span><span class="hl opt">,</span> r<span class="hl opt">.</span>random_onfly_time_ns<span class="hl opt">,</span> <span class="hl sng">&quot;ns&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl sng">&quot;random_preindexed_time_ns&quot;</span><span class="hl opt">,</span> r<span class="hl opt">.</span>random_preindexed_time_ns<span class="hl opt">,</span> <span class="hl sng">&quot;ns&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">writeValueElement</span><span class="hl opt">(</span><span class="hl sng">&quot;repeats&quot;</span><span class="hl opt">,</span> r<span class="hl opt">.</span>repeats<span class="hl opt">,</span> <span class="hl sng">&quot;&quot;</span><span class="hl opt">);</span>
+        writer<span class="hl opt">.</span><span class="hl kwd">closeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;measurement&quot;</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+
+    writer<span class="hl opt">.</span><span class="hl kwd">closeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;results&quot;</span><span class="hl opt">);</span>
+    writer<span class="hl opt">.</span><span class="hl kwd">closeElement</span><span class="hl opt">(</span><span class="hl sng">&quot;cache_latency_measurements&quot;</span><span class="hl opt">);</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">double</span> <span class="hl kwd">measureTime</span><span class="hl opt">(</span><span class="hl kwb">const</span> <span class="hl kwe">std</span><span class="hl opt">::</span>function<span class="hl opt">&lt;</span><span class="hl kwb">void</span><span class="hl opt">()&gt;&amp;</span> func<span class="hl opt">,</span> <span class="hl kwb">int</span> warmup <span class="hl opt">=</span> <span class="hl num">1</span><span class="hl opt">) {</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> warmup<span class="hl opt">; ++</span>i<span class="hl opt">) {</span>
+        <span class="hl kwd">func</span><span class="hl opt">();</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwd">auto</span> start <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span><span class="hl kwe">high_resolution_clock</span><span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+    <span class="hl kwd">func</span><span class="hl opt">();</span>
+    <span class="hl kwd">auto</span> end <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span><span class="hl kwe">high_resolution_clock</span><span class="hl opt">::</span><span class="hl kwd">now</span><span class="hl opt">();</span>
+
+    <span class="hl kwd">auto</span> duration <span class="hl opt">=</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span>duration_cast<span class="hl opt">&lt;</span><span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwe">chrono</span><span class="hl opt">::</span>nanoseconds<span class="hl opt">&gt;(</span>end <span class="hl opt">-</span> start<span class="hl opt">);</span>
+    <span class="hl kwa">return</span> duration<span class="hl opt">.</span><span class="hl kwd">count</span><span class="hl opt">();</span>
+<span class="hl opt">}</span>
+
+MeasurementResult <span class="hl kwd">measureForSize</span><span class="hl opt">(</span><span class="hl kwb">size_t</span> size_bytes<span class="hl opt">,</span> <span class="hl kwb">int</span> repeats <span class="hl opt">=</span> <span class="hl num">5</span><span class="hl opt">) {</span>
+    <span class="hl kwb">size_t</span> num_elements <span class="hl opt">=</span> size_bytes <span class="hl opt">/</span> <span class="hl kwa">sizeof</span><span class="hl opt">(</span><span class="hl kwb">int</span><span class="hl opt">);</span>
+    MeasurementResult result<span class="hl opt">;</span>
+    result<span class="hl opt">.</span>size_bytes <span class="hl opt">=</span> size_bytes<span class="hl opt">;</span>
+    result<span class="hl opt">.</span>repeats <span class="hl opt">=</span> repeats<span class="hl opt">;</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;  Measuring size: &quot;</span> <span class="hl opt">&lt;&lt;</span> size_bytes <span class="hl opt">/</span> <span class="hl num">1024</span> <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; KB (&quot;</span>
+              <span class="hl opt">&lt;&lt;</span> num_elements <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; elements)...&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">int</span><span class="hl opt">&gt;</span> <span class="hl kwd">arr</span><span class="hl opt">(</span>num_elements<span class="hl opt">,</span> <span class="hl num">1</span><span class="hl opt">);</span> <span class="hl slc">// Fill with 1s</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">size_t</span><span class="hl opt">&gt;</span> <span class="hl kwd">indices</span><span class="hl opt">(</span>num_elements<span class="hl opt">);</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>mt19937 <span class="hl kwd">rng</span><span class="hl opt">(</span><span class="hl kwe">std</span><span class="hl opt">::</span>random_device<span class="hl opt">{}());</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> num_elements<span class="hl opt">; ++</span>i<span class="hl opt">) {</span>
+        indices<span class="hl opt">[</span>i<span class="hl opt">] =</span> <span class="hl kwd">rng</span><span class="hl opt">() %</span> num_elements<span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwb">double</span> total_seq <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> r <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> r <span class="hl opt">&lt;</span> repeats<span class="hl opt">; ++</span>r<span class="hl opt">) {</span>
+        total_seq <span class="hl opt">+=</span> <span class="hl kwd">measureTime</span><span class="hl opt">([&amp;]() {</span>
+            <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span> res<span class="hl opt">;</span>
+            <span class="hl kwd">sequentialSum</span><span class="hl opt">(</span>arr<span class="hl opt">,</span> res<span class="hl opt">);</span>
+        <span class="hl opt">},</span> <span class="hl num">0</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+    result<span class="hl opt">.</span>sequential_time_ns <span class="hl opt">=</span> total_seq <span class="hl opt">/ (</span>repeats <span class="hl opt">*</span> num_elements<span class="hl opt">);</span>
+
+    <span class="hl kwb">double</span> total_rand_onfly <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> r <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> r <span class="hl opt">&lt;</span> repeats<span class="hl opt">; ++</span>r<span class="hl opt">) {</span>
+        total_rand_onfly <span class="hl opt">+=</span> <span class="hl kwd">measureTime</span><span class="hl opt">([&amp;]() {</span>
+            <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span> res<span class="hl opt">;</span>
+            <span class="hl kwd">randomSumOnFly</span><span class="hl opt">(</span>arr<span class="hl opt">,</span> res<span class="hl opt">);</span>
+        <span class="hl opt">},</span> <span class="hl num">0</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+    result<span class="hl opt">.</span>random_onfly_time_ns <span class="hl opt">=</span> total_rand_onfly <span class="hl opt">/ (</span>repeats <span class="hl opt">*</span> num_elements<span class="hl opt">);</span>
+
+    <span class="hl kwb">double</span> total_rand_pre <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span>
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">int</span> r <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> r <span class="hl opt">&lt;</span> repeats<span class="hl opt">; ++</span>r<span class="hl opt">) {</span>
+        total_rand_pre <span class="hl opt">+=</span> <span class="hl kwd">measureTime</span><span class="hl opt">([&amp;]() {</span>
+            <span class="hl kwd">volatile</span> <span class="hl kwb">long long</span> res<span class="hl opt">;</span>
+            <span class="hl kwd">randomSumPreIndexed</span><span class="hl opt">(</span>arr<span class="hl opt">,</span> indices<span class="hl opt">,</span> res<span class="hl opt">);</span>
+        <span class="hl opt">},</span> <span class="hl num">0</span><span class="hl opt">);</span>
+    <span class="hl opt">}</span>
+    result<span class="hl opt">.</span>random_preindexed_time_ns <span class="hl opt">=</span> total_rand_pre <span class="hl opt">/ (</span>repeats <span class="hl opt">*</span> num_elements<span class="hl opt">);</span>
+
+    <span class="hl kwa">return</span> result<span class="hl opt">;</span>
+<span class="hl opt">}</span>
+
+<span class="hl kwb">int</span> <span class="hl kwd">main</span><span class="hl opt">() {</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;=== Cache Latency Measurement Program ===&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;Measuring L1, L2, L3 cache and RAM latencies&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;System Information:&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl ppc">#ifdef __linux__</span>
+    <span class="hl kwd">system</span><span class="hl opt">(</span><span class="hl sng">&quot;lscpu | grep -E &#39;Model name|CPU MHz|L1d cache|L1i cache|L2 cache|L3 cache&#39; || true&quot;</span><span class="hl opt">);</span>
+    <span class="hl ppc">#elif defined(_WIN32)</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;  (Run on Windows - CPU info not auto-detected)&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl ppc">#endif</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span><span class="hl kwb">size_t</span><span class="hl opt">&gt;</span> sizes <span class="hl opt">=</span> <span class="hl kwd">generateSizes</span><span class="hl opt">();</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>vector<span class="hl opt">&lt;</span>MeasurementResult<span class="hl opt">&gt;</span> results<span class="hl opt">;</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;Will measure &quot;</span> <span class="hl opt">&lt;&lt;</span> sizes<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl sng">&quot; different sizes&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;From &quot;</span> <span class="hl opt">&lt;&lt;</span> sizes<span class="hl opt">.</span><span class="hl kwd">front</span><span class="hl opt">() /</span> <span class="hl num">1024</span> <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; KB to &quot;</span>
+              <span class="hl opt">&lt;&lt;</span> sizes<span class="hl opt">.</span><span class="hl kwd">back</span><span class="hl opt">() / (</span><span class="hl num">1024</span> <span class="hl opt">*</span> <span class="hl num">1024</span><span class="hl opt">) &lt;&lt;</span> <span class="hl sng">&quot; MB&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+
+    <span class="hl kwa">for</span> <span class="hl opt">(</span><span class="hl kwb">size_t</span> i <span class="hl opt">=</span> <span class="hl num">0</span><span class="hl opt">;</span> i <span class="hl opt">&lt;</span> sizes<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">(); ++</span>i<span class="hl opt">) {</span>
+        <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;Progress: &quot;</span> <span class="hl opt">&lt;&lt;</span> i <span class="hl opt">+</span> <span class="hl num">1</span> <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;/&quot;</span> <span class="hl opt">&lt;&lt;</span> sizes<span class="hl opt">.</span><span class="hl kwd">size</span><span class="hl opt">() &lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+        MeasurementResult r <span class="hl opt">=</span> <span class="hl kwd">measureForSize</span><span class="hl opt">(</span>sizes<span class="hl opt">[</span>i<span class="hl opt">],</span> <span class="hl num">3</span><span class="hl opt">);</span> <span class="hl slc">// 3 repeats</span>
+        results<span class="hl opt">.</span><span class="hl kwd">push_back</span><span class="hl opt">(</span>r<span class="hl opt">);</span>
+
+        <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;    Sequential: &quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>fixed <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span><span class="hl kwd">setprecision</span><span class="hl opt">(</span><span class="hl num">2</span><span class="hl opt">)</span>
+                  <span class="hl opt">&lt;&lt;</span> r<span class="hl opt">.</span>sequential_time_ns <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; ns/iter&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+        <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;    Random on-fly: &quot;</span> <span class="hl opt">&lt;&lt;</span> r<span class="hl opt">.</span>random_onfly_time_ns <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; ns/iter&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+        <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;    Random pre-indexed: &quot;</span> <span class="hl opt">&lt;&lt;</span> r<span class="hl opt">.</span>random_preindexed_time_ns <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot; ns/iter&quot;</span> <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+        <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+    <span class="hl opt">}</span>
+
+    <span class="hl kwe">std</span><span class="hl opt">::</span>string filename <span class="hl opt">=</span> <span class="hl sng">&quot;cache_latency_results.xml&quot;</span><span class="hl opt">;</span>
+    <span class="hl kwd">saveResultsToXML</span><span class="hl opt">(</span>results<span class="hl opt">,</span> filename<span class="hl opt">);</span>
+    <span class="hl kwe">std</span><span class="hl opt">::</span>cout <span class="hl opt">&lt;&lt;</span> <span class="hl sng">&quot;Results saved to &quot;</span> <span class="hl opt">&lt;&lt;</span> filename <span class="hl opt">&lt;&lt;</span> <span class="hl kwe">std</span><span class="hl opt">::</span>endl<span class="hl opt">;</span>
+
+    <span class="hl kwa">return</span> <span class="hl num">0</span><span class="hl opt">;</span>
+<span class="hl opt">}</span>
+</pre>
+</body>
+</html>
+<!--HTML generated by highlight 4.12, http://www.andre-simon.de/-->

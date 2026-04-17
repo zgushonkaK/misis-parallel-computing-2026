@@ -1,10 +1,15 @@
-#include <x86intrin.h>
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <vector>
 #include <cstring>
 #include <memory>
+
+#ifdef _MSC_VER
+    #include <intrin.h>
+#else
+    #include <cpuid.h>
+#endif
 
 struct CPUIDResult {
     unsigned int eax;
@@ -60,20 +65,20 @@ struct CacheInfo {
 };
 
 struct ExtendedFeatures {
-    bool avx2;
-    bool rtm;
-    bool avx512f;
-    bool sha;
-    bool gfni;
-    bool amx_bf16;
-    bool amx_tile;
-    bool amx_int8;
+    bool avx2 = false;
+    bool rtm = false;
+    bool avx512f = false;
+    bool sha = false;
+    bool gfni = false;
+    bool amx_bf16 = false;
+    bool amx_tile = false;
+    bool amx_int8 = false;
 };
 
 struct FrequencyInfo {
-    unsigned int base_frequency_mhz;
-    unsigned int max_frequency_mhz;
-    unsigned int bus_frequency_mhz;
+    unsigned int base_frequency_mhz = 0;
+    unsigned int max_frequency_mhz = 0;
+    unsigned int bus_frequency_mhz = 0;
 };
 
 struct ExtendedVendorInfo {
@@ -82,10 +87,10 @@ struct ExtendedVendorInfo {
 };
 
 struct ExtendedFeaturesAMD {
-    bool sse4a;
-    bool fma4;
-    bool threednow;
-    bool threednow_ext;
+    bool sse4a = false;
+    bool fma4 = false;
+    bool threednow = false;
+    bool threednow_ext = false;
 };
 
 class CPUIDManager {
@@ -101,13 +106,21 @@ private:
 
     CPUIDResult cpuid(unsigned int function_id) {
         CPUIDResult result;
+#ifdef _MSC_VER
+        __cpuid((int*)&result, function_id);
+#else
         __cpuid(function_id, result.eax, result.ebx, result.ecx, result.edx);
+#endif
         return result;
     }
 
     CPUIDResult cpuidex(unsigned int function_id, unsigned int subfunction_id) {
         CPUIDResult result;
+#ifdef _MSC_VER
         __cpuidex((int*)&result, function_id, subfunction_id);
+#else
+        __cpuid_count(function_id, subfunction_id, result.eax, result.ebx, result.ecx, result.edx);
+#endif
         return result;
     }
 
@@ -160,8 +173,6 @@ private:
     }
 
     void fetchExtendedFeatures() {
-        extended_features = {0};
-
         if (vendor_info.max_basic_function >= 7) {
             CPUIDResult result = cpuidex(7, 0);
 
@@ -215,8 +226,6 @@ private:
     }
 
     void fetchFrequencyInfo() {
-        frequency_info = {0};
-
         if (vendor_info.max_basic_function >= 0x16) {
             CPUIDResult result = cpuid(0x16);
             frequency_info.base_frequency_mhz = result.eax & 0xFFFF;
@@ -246,8 +255,6 @@ private:
     }
 
     void fetchAMDFeatures() {
-        amd_features = {0};
-
         if (vendor_info.max_basic_function >= 0x80000001 &&
             vendor_info.vendor_string == "AuthenticAMD") {
             CPUIDResult result = cpuid(0x80000001);
@@ -422,7 +429,7 @@ private:
 
     void printFeature(const std::string& name, bool enabled) const {
         std::cout << "  " << std::left << std::setw(20) << name << ": "
-                  << (enabled ? "✓" : "✗") << std::endl;
+                  << (enabled ? "0" : "1") << std::endl;
     }
 };
 

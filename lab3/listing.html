@@ -1,0 +1,446 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iomanip&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;string&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;vector&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstring&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;memory&gt;</font>
+
+<b><font color="#000080">#ifdef</font></b> _MSC_VER
+<b><font color="#000080">    #include</font></b> <font color="#FF0000">&lt;intrin.h&gt;</font>
+<b><font color="#000080">#else</font></b>
+<b><font color="#000080">    #include</font></b> <font color="#FF0000">&lt;cpuid.h&gt;</font>
+<b><font color="#000080">#endif</font></b>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">CPUIDResult</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> eax<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> ebx<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> ecx<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> edx<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">VendorInfo</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> max_basic_function<font color="#990000">;</font>
+    std<font color="#990000">::</font><font color="#008080">string</font> vendor_string<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">ProcessorVersionInfo</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> stepping<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> model<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> family<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> processor_type<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> extended_model<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> extended_family<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> full_identifier<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">ProcessorFeatures</font> <font color="#FF0000">{</font>
+    <font color="#009900">bool</font> fpu<font color="#990000">;</font>
+    <font color="#009900">bool</font> tsc<font color="#990000">;</font>
+    <font color="#009900">bool</font> mmx<font color="#990000">;</font>
+    <font color="#009900">bool</font> sse<font color="#990000">;</font>
+    <font color="#009900">bool</font> sse2<font color="#990000">;</font>
+    <font color="#009900">bool</font> htt<font color="#990000">;</font>
+    <font color="#009900">bool</font> sse3<font color="#990000">;</font>
+    <font color="#009900">bool</font> ssse3<font color="#990000">;</font>
+    <font color="#009900">bool</font> fma3<font color="#990000">;</font>
+    <font color="#009900">bool</font> sse41<font color="#990000">;</font>
+    <font color="#009900">bool</font> sse42<font color="#990000">;</font>
+    <font color="#009900">bool</font> avx<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> max_logical_processors<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> local_apic_id<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">CacheInfo</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> cache_type<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> cache_level<font color="#990000">;</font>
+    <font color="#009900">bool</font> fully_associative<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> threads_per_cache<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> cores_per_cache<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> cache_line_size<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> physical_line_partitions<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> ways_of_associativity<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> number_of_sets<font color="#990000">;</font>
+    <font color="#009900">bool</font> inclusive<font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> cache_size<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">ExtendedFeatures</font> <font color="#FF0000">{</font>
+    <font color="#009900">bool</font> avx2 <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> rtm <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> avx512f <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> sha <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> gfni <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> amx_bf16 <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> amx_tile <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> amx_int8 <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">FrequencyInfo</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> base_frequency_mhz <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> max_frequency_mhz <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> bus_frequency_mhz <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">ExtendedVendorInfo</font> <font color="#FF0000">{</font>
+    <font color="#009900">unsigned</font> <font color="#009900">int</font> max_extended_function<font color="#990000">;</font>
+    std<font color="#990000">::</font><font color="#008080">string</font> brand_string<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">ExtendedFeaturesAMD</font> <font color="#FF0000">{</font>
+    <font color="#009900">bool</font> sse4a <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> fma4 <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> threednow <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <font color="#009900">bool</font> threednow_ext <font color="#990000">=</font> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">class</font></b> <font color="#008080">CPUIDManager</font> <font color="#FF0000">{</font>
+<b><font color="#0000FF">private</font></b><font color="#990000">:</font>
+    <font color="#008080">VendorInfo</font> vendor_info<font color="#990000">;</font>
+    <font color="#008080">ProcessorVersionInfo</font> version_info<font color="#990000">;</font>
+    <font color="#008080">ProcessorFeatures</font> features<font color="#990000">;</font>
+    <font color="#008080">ExtendedFeatures</font> extended_features<font color="#990000">;</font>
+    std<font color="#990000">::</font><font color="#008080">vector&lt;CacheInfo&gt;</font> cache_info<font color="#990000">;</font>
+    <font color="#008080">FrequencyInfo</font> frequency_info<font color="#990000">;</font>
+    <font color="#008080">ExtendedVendorInfo</font> extended_info<font color="#990000">;</font>
+    <font color="#008080">ExtendedFeaturesAMD</font> amd_features<font color="#990000">;</font>
+
+    <font color="#008080">CPUIDResult</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">int</font> function_id<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result<font color="#990000">;</font>
+<b><font color="#000080">#ifdef</font></b> _MSC_VER
+        <b><font color="#000000">__cpuid</font></b><font color="#990000">((</font><font color="#009900">int</font><font color="#990000">*)&amp;</font>result<font color="#990000">,</font> function_id<font color="#990000">);</font>
+<b><font color="#000080">#else</font></b>
+        <b><font color="#000000">__cpuid</font></b><font color="#990000">(</font>function_id<font color="#990000">,</font> result<font color="#990000">.</font>eax<font color="#990000">,</font> result<font color="#990000">.</font>ebx<font color="#990000">,</font> result<font color="#990000">.</font>ecx<font color="#990000">,</font> result<font color="#990000">.</font>edx<font color="#990000">);</font>
+<b><font color="#000080">#endif</font></b>
+        <b><font color="#0000FF">return</font></b> result<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#008080">CPUIDResult</font> <b><font color="#000000">cpuidex</font></b><font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">int</font> function_id<font color="#990000">,</font> <font color="#009900">unsigned</font> <font color="#009900">int</font> subfunction_id<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result<font color="#990000">;</font>
+<b><font color="#000080">#ifdef</font></b> _MSC_VER
+        <b><font color="#000000">__cpuidex</font></b><font color="#990000">((</font><font color="#009900">int</font><font color="#990000">*)&amp;</font>result<font color="#990000">,</font> function_id<font color="#990000">,</font> subfunction_id<font color="#990000">);</font>
+<b><font color="#000080">#else</font></b>
+        <b><font color="#000000">__cpuid_count</font></b><font color="#990000">(</font>function_id<font color="#990000">,</font> subfunction_id<font color="#990000">,</font> result<font color="#990000">.</font>eax<font color="#990000">,</font> result<font color="#990000">.</font>ebx<font color="#990000">,</font> result<font color="#990000">.</font>ecx<font color="#990000">,</font> result<font color="#990000">.</font>edx<font color="#990000">);</font>
+<b><font color="#000080">#endif</font></b>
+        <b><font color="#0000FF">return</font></b> result<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchVendorInfo</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">0</font><font color="#990000">);</font>
+        vendor_info<font color="#990000">.</font>max_basic_function <font color="#990000">=</font> result<font color="#990000">.</font>eax<font color="#990000">;</font>
+
+        <font color="#009900">char</font> vendor<font color="#990000">[</font><font color="#993399">13</font><font color="#990000">]</font> <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">0</font><font color="#FF0000">}</font><font color="#990000">;</font>
+        <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>vendor <font color="#990000">+</font> <font color="#993399">0</font><font color="#990000">,</font> <font color="#990000">&amp;</font>result<font color="#990000">.</font>ebx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+        <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>vendor <font color="#990000">+</font> <font color="#993399">4</font><font color="#990000">,</font> <font color="#990000">&amp;</font>result<font color="#990000">.</font>edx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+        <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>vendor <font color="#990000">+</font> <font color="#993399">8</font><font color="#990000">,</font> <font color="#990000">&amp;</font>result<font color="#990000">.</font>ecx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+        vendor_info<font color="#990000">.</font>vendor_string <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">string</font></b><font color="#990000">(</font>vendor<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchVersionInfo</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">1</font><font color="#990000">);</font>
+        <font color="#009900">unsigned</font> <font color="#009900">int</font> eax <font color="#990000">=</font> result<font color="#990000">.</font>eax<font color="#990000">;</font>
+
+        version_info<font color="#990000">.</font>full_identifier <font color="#990000">=</font> eax<font color="#990000">;</font>
+        version_info<font color="#990000">.</font>stepping <font color="#990000">=</font> eax <font color="#990000">&amp;</font> <font color="#993399">0xF</font><font color="#990000">;</font>
+        version_info<font color="#990000">.</font>model <font color="#990000">=</font> <font color="#990000">(</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">4</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xF</font><font color="#990000">;</font>
+        version_info<font color="#990000">.</font>family <font color="#990000">=</font> <font color="#990000">(</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xF</font><font color="#990000">;</font>
+        version_info<font color="#990000">.</font>processor_type <font color="#990000">=</font> <font color="#990000">(</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">12</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0x3</font><font color="#990000">;</font>
+        version_info<font color="#990000">.</font>extended_model <font color="#990000">=</font> <font color="#990000">(</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">16</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xF</font><font color="#990000">;</font>
+        version_info<font color="#990000">.</font>extended_family <font color="#990000">=</font> <font color="#990000">(</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">20</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xFF</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchFeatures</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">1</font><font color="#990000">);</font>
+        <font color="#009900">unsigned</font> <font color="#009900">int</font> ebx <font color="#990000">=</font> result<font color="#990000">.</font>ebx<font color="#990000">;</font>
+        <font color="#009900">unsigned</font> <font color="#009900">int</font> ecx <font color="#990000">=</font> result<font color="#990000">.</font>ecx<font color="#990000">;</font>
+        <font color="#009900">unsigned</font> <font color="#009900">int</font> edx <font color="#990000">=</font> result<font color="#990000">.</font>edx<font color="#990000">;</font>
+
+        features<font color="#990000">.</font>fpu <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>tsc <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">4</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>mmx <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">23</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>sse <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">25</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>sse2 <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">26</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>htt <font color="#990000">=</font> <font color="#990000">(</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">28</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+        features<font color="#990000">.</font>sse3 <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>ssse3 <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">9</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>fma3 <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">12</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>sse41 <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">19</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>sse42 <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">20</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>avx <font color="#990000">=</font> <font color="#990000">(</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">28</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+        features<font color="#990000">.</font>max_logical_processors <font color="#990000">=</font> <font color="#990000">(</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">16</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xFF</font><font color="#990000">;</font>
+        features<font color="#990000">.</font>local_apic_id <font color="#990000">=</font> ebx <font color="#990000">&amp;</font> <font color="#993399">0xFF</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchExtendedFeatures</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>vendor_info<font color="#990000">.</font>max_basic_function <font color="#990000">&gt;=</font> <font color="#993399">7</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuidex</font></b><font color="#990000">(</font><font color="#993399">7</font><font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">);</font>
+
+            extended_features<font color="#990000">.</font>avx2 <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">5</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            extended_features<font color="#990000">.</font>rtm <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">11</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            extended_features<font color="#990000">.</font>avx512f <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">16</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            extended_features<font color="#990000">.</font>sha <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">29</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            extended_features<font color="#990000">.</font>gfni <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            extended_features<font color="#990000">.</font>amx_bf16 <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">22</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            extended_features<font color="#990000">.</font>amx_tile <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">24</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            extended_features<font color="#990000">.</font>amx_int8 <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">25</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchCacheInfo</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        cache_info<font color="#990000">.</font><b><font color="#000000">clear</font></b><font color="#990000">();</font>
+        <font color="#009900">unsigned</font> <font color="#009900">int</font> subleaf <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+
+        <b><font color="#0000FF">while</font></b> <font color="#990000">(</font><b><font color="#0000FF">true</font></b><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuidex</font></b><font color="#990000">(</font><font color="#993399">4</font><font color="#990000">,</font> subleaf<font color="#990000">);</font>
+
+            <b><font color="#0000FF">if</font></b> <font color="#990000">((</font>result<font color="#990000">.</font>eax <font color="#990000">&amp;</font> <font color="#993399">0x1F</font><font color="#990000">)</font> <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">)</font> <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+
+            <font color="#008080">CacheInfo</font> cache<font color="#990000">;</font>
+            cache<font color="#990000">.</font>cache_type <font color="#990000">=</font> result<font color="#990000">.</font>eax <font color="#990000">&amp;</font> <font color="#993399">0x1F</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>cache_level <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">5</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0x7</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>fully_associative <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>eax <font color="#990000">&gt;&gt;</font> <font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            cache<font color="#990000">.</font>threads_per_cache <font color="#990000">=</font> <font color="#990000">((</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">14</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0xFFF</font><font color="#990000">)</font> <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>cores_per_cache <font color="#990000">=</font> <font color="#990000">((</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">26</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0x3F</font><font color="#990000">)</font> <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            cache<font color="#990000">.</font>number_of_sets <font color="#990000">=</font> result<font color="#990000">.</font>ecx <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            cache<font color="#990000">.</font>inclusive <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">2</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>cache_line_size <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ebx <font color="#990000">&amp;</font> <font color="#993399">0xFFF</font><font color="#990000">)</font> <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>physical_line_partitions <font color="#990000">=</font> <font color="#990000">((</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">12</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0x3FF</font><font color="#990000">)</font> <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+            cache<font color="#990000">.</font>ways_of_associativity <font color="#990000">=</font> <font color="#990000">((</font>result<font color="#990000">.</font>ebx <font color="#990000">&gt;&gt;</font> <font color="#993399">22</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">0x3FF</font><font color="#990000">)</font> <font color="#990000">+</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            cache<font color="#990000">.</font>cache_size <font color="#990000">=</font> cache<font color="#990000">.</font>cache_line_size <font color="#990000">*</font>
+                              cache<font color="#990000">.</font>physical_line_partitions <font color="#990000">*</font>
+                              cache<font color="#990000">.</font>ways_of_associativity <font color="#990000">*</font>
+                              cache<font color="#990000">.</font>number_of_sets<font color="#990000">;</font>
+
+            cache_info<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font>cache<font color="#990000">);</font>
+            subleaf<font color="#990000">++;</font>
+
+            <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>subleaf <font color="#990000">&gt;</font> <font color="#993399">20</font><font color="#990000">)</font> <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchFrequencyInfo</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>vendor_info<font color="#990000">.</font>max_basic_function <font color="#990000">&gt;=</font> <font color="#993399">0x16</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">0x16</font><font color="#990000">);</font>
+            frequency_info<font color="#990000">.</font>base_frequency_mhz <font color="#990000">=</font> result<font color="#990000">.</font>eax <font color="#990000">&amp;</font> <font color="#993399">0xFFFF</font><font color="#990000">;</font>
+            frequency_info<font color="#990000">.</font>max_frequency_mhz <font color="#990000">=</font> result<font color="#990000">.</font>ebx <font color="#990000">&amp;</font> <font color="#993399">0xFFFF</font><font color="#990000">;</font>
+            frequency_info<font color="#990000">.</font>bus_frequency_mhz <font color="#990000">=</font> result<font color="#990000">.</font>ecx <font color="#990000">&amp;</font> <font color="#993399">0xFFFF</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchExtendedInfo</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">0x80000000</font><font color="#990000">);</font>
+        extended_info<font color="#990000">.</font>max_extended_function <font color="#990000">=</font> result<font color="#990000">.</font>eax<font color="#990000">;</font>
+
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>extended_info<font color="#990000">.</font>max_extended_function <font color="#990000">&gt;=</font> <font color="#993399">0x80000004</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#009900">char</font> brand<font color="#990000">[</font><font color="#993399">49</font><font color="#990000">]</font> <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">0</font><font color="#FF0000">}</font><font color="#990000">;</font>
+            <font color="#008080">CPUIDResult</font> results<font color="#990000">[</font><font color="#993399">3</font><font color="#990000">];</font>
+
+            <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">3</font><font color="#990000">;</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font>
+                results<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">0x80000002</font> <font color="#990000">+</font> i<font color="#990000">);</font>
+                <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>brand <font color="#990000">+</font> i<font color="#990000">*</font><font color="#993399">16</font><font color="#990000">,</font> <font color="#990000">&amp;</font>results<font color="#990000">[</font>i<font color="#990000">].</font>eax<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+                <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>brand <font color="#990000">+</font> i<font color="#990000">*</font><font color="#993399">16</font> <font color="#990000">+</font> <font color="#993399">4</font><font color="#990000">,</font> <font color="#990000">&amp;</font>results<font color="#990000">[</font>i<font color="#990000">].</font>ebx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+                <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>brand <font color="#990000">+</font> i<font color="#990000">*</font><font color="#993399">16</font> <font color="#990000">+</font> <font color="#993399">8</font><font color="#990000">,</font> <font color="#990000">&amp;</font>results<font color="#990000">[</font>i<font color="#990000">].</font>ecx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+                <b><font color="#000000">memcpy</font></b><font color="#990000">(</font>brand <font color="#990000">+</font> i<font color="#990000">*</font><font color="#993399">16</font> <font color="#990000">+</font> <font color="#993399">12</font><font color="#990000">,</font> <font color="#990000">&amp;</font>results<font color="#990000">[</font>i<font color="#990000">].</font>edx<font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">);</font>
+            <font color="#FF0000">}</font>
+
+            extended_info<font color="#990000">.</font>brand_string <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">string</font></b><font color="#990000">(</font>brand<font color="#990000">);</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchAMDFeatures</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>vendor_info<font color="#990000">.</font>max_basic_function <font color="#990000">&gt;=</font> <font color="#993399">0x80000001</font> <font color="#990000">&amp;&amp;</font>
+            vendor_info<font color="#990000">.</font>vendor_string <font color="#990000">==</font> <font color="#FF0000">"AuthenticAMD"</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#008080">CPUIDResult</font> result <font color="#990000">=</font> <b><font color="#000000">cpuid</font></b><font color="#990000">(</font><font color="#993399">0x80000001</font><font color="#990000">);</font>
+
+            amd_features<font color="#990000">.</font>sse4a <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            amd_features<font color="#990000">.</font>fma4 <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>ecx <font color="#990000">&gt;&gt;</font> <font color="#993399">16</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+
+            amd_features<font color="#990000">.</font>threednow <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">31</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+            amd_features<font color="#990000">.</font>threednow_ext <font color="#990000">=</font> <font color="#990000">(</font>result<font color="#990000">.</font>edx <font color="#990000">&gt;&gt;</font> <font color="#993399">30</font><font color="#990000">)</font> <font color="#990000">&amp;</font> <font color="#993399">1</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    std<font color="#990000">::</font><font color="#008080">string</font> <b><font color="#000000">getCacheTypeString</font></b><font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">int</font> type<font color="#990000">)</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">switch</font></b><font color="#990000">(</font>type<font color="#990000">)</font> <font color="#FF0000">{</font>
+            <b><font color="#0000FF">case</font></b> <font color="#993399">1</font><font color="#990000">:</font> <b><font color="#0000FF">return</font></b> <font color="#FF0000">"Data Cache"</font><font color="#990000">;</font>
+            <b><font color="#0000FF">case</font></b> <font color="#993399">2</font><font color="#990000">:</font> <b><font color="#0000FF">return</font></b> <font color="#FF0000">"Instruction Cache"</font><font color="#990000">;</font>
+            <b><font color="#0000FF">case</font></b> <font color="#993399">3</font><font color="#990000">:</font> <b><font color="#0000FF">return</font></b> <font color="#FF0000">"Unified Cache"</font><font color="#990000">;</font>
+            <b><font color="#0000FF">default</font></b><font color="#990000">:</font> <b><font color="#0000FF">return</font></b> <font color="#FF0000">"Unknown"</font><font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+<b><font color="#0000FF">public</font></b><font color="#990000">:</font>
+    <b><font color="#000000">CPUIDManager</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <b><font color="#000000">fetchAllData</font></b><font color="#990000">();</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">fetchAllData</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+        <b><font color="#000000">fetchVendorInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchVersionInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchFeatures</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchExtendedFeatures</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchCacheInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchFrequencyInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchExtendedInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">fetchAMDFeatures</font></b><font color="#990000">();</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#0000FF">const</font></b> VendorInfo<font color="#990000">&amp;</font> <b><font color="#000000">getVendorInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> vendor_info<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> ProcessorVersionInfo<font color="#990000">&amp;</font> <b><font color="#000000">getVersionInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> version_info<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> ProcessorFeatures<font color="#990000">&amp;</font> <b><font color="#000000">getFeatures</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> features<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> ExtendedFeatures<font color="#990000">&amp;</font> <b><font color="#000000">getExtendedFeatures</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> extended_features<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> std<font color="#990000">::</font>vector<font color="#990000">&lt;</font>CacheInfo<font color="#990000">&gt;&amp;</font> <b><font color="#000000">getCacheInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> cache_info<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> FrequencyInfo<font color="#990000">&amp;</font> <b><font color="#000000">getFrequencyInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> frequency_info<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> ExtendedVendorInfo<font color="#990000">&amp;</font> <b><font color="#000000">getExtendedInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> extended_info<font color="#990000">;</font> <font color="#FF0000">}</font>
+    <b><font color="#0000FF">const</font></b> ExtendedFeaturesAMD<font color="#990000">&amp;</font> <b><font color="#000000">getAMDFeatures</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> amd_features<font color="#990000">;</font> <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printAllInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#000000">printHeader</font></b><font color="#990000">(</font><font color="#FF0000">"CPU Information"</font><font color="#990000">);</font>
+
+        <b><font color="#000000">printVendorInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printProcessorBrand</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printVersionInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printFeatures</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printExtendedFeatures</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printCacheInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printFrequencyInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printAMDInfo</font></b><font color="#990000">();</font>
+        <b><font color="#000000">printExtendedFunctionsInfo</font></b><font color="#990000">();</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printVendorInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Vendor Information]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Vendor: "</font> <font color="#990000">&lt;&lt;</font> vendor_info<font color="#990000">.</font>vendor_string <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Max Basic Function: 0x"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>hex
+                  <font color="#990000">&lt;&lt;</font> vendor_info<font color="#990000">.</font>max_basic_function <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>dec <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printProcessorBrand</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(!</font>extended_info<font color="#990000">.</font>brand_string<font color="#990000">.</font><b><font color="#000000">empty</font></b><font color="#990000">())</font> <font color="#FF0000">{</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Processor Brand]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  "</font> <font color="#990000">&lt;&lt;</font> extended_info<font color="#990000">.</font>brand_string <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printVersionInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Processor Version]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Family:          "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>family <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Extended Family: "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>extended_family <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Model:           "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>model <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Extended Model:  "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>extended_model <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Stepping:        "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>stepping <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Processor Type:  "</font> <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>processor_type <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Full Identifier: 0x"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>hex
+                  <font color="#990000">&lt;&lt;</font> version_info<font color="#990000">.</font>full_identifier <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>dec <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printFeatures</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Processor Features]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"FPU"</font><font color="#990000">,</font> features<font color="#990000">.</font>fpu<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"TSC"</font><font color="#990000">,</font> features<font color="#990000">.</font>tsc<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"MMX"</font><font color="#990000">,</font> features<font color="#990000">.</font>mmx<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE"</font><font color="#990000">,</font> features<font color="#990000">.</font>sse<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE2"</font><font color="#990000">,</font> features<font color="#990000">.</font>sse2<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE3"</font><font color="#990000">,</font> features<font color="#990000">.</font>sse3<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSSE3"</font><font color="#990000">,</font> features<font color="#990000">.</font>ssse3<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE4.1"</font><font color="#990000">,</font> features<font color="#990000">.</font>sse41<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE4.2"</font><font color="#990000">,</font> features<font color="#990000">.</font>sse42<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AVX"</font><font color="#990000">,</font> features<font color="#990000">.</font>avx<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"FMA3"</font><font color="#990000">,</font> features<font color="#990000">.</font>fma3<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"Hyper-Threading"</font><font color="#990000">,</font> features<font color="#990000">.</font>htt<font color="#990000">);</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Logical Processors: "</font> <font color="#990000">&lt;&lt;</font> features<font color="#990000">.</font>max_logical_processors <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Local APIC ID:      "</font> <font color="#990000">&lt;&lt;</font> features<font color="#990000">.</font>local_apic_id <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printExtendedFeatures</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Extended Features]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AVX2"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>avx2<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AVX-512F"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>avx512f<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SHA"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>sha<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"GFNI"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>gfni<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"RTM (TSX)"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>rtm<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AMX-BF16"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>amx_bf16<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AMX-TILE"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>amx_tile<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"AMX-INT8"</font><font color="#990000">,</font> extended_features<font color="#990000">.</font>amx_int8<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printCacheInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>cache_info<font color="#990000">.</font><b><font color="#000000">empty</font></b><font color="#990000">())</font> <b><font color="#0000FF">return</font></b><font color="#990000">;</font>
+
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Cache Information]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> cache_info<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font> i<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b><font color="#990000">&amp;</font> cache <font color="#990000">=</font> cache_info<font color="#990000">[</font>i<font color="#990000">];</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  L"</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>cache_level <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" "</font>
+                      <font color="#990000">&lt;&lt;</font> <b><font color="#000000">getCacheTypeString</font></b><font color="#990000">(</font>cache<font color="#990000">.</font>cache_type<font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">":"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Size:           "</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>cache_size <font color="#990000">/</font> <font color="#993399">1024</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" KB"</font>
+                      <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>cache_size <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" bytes)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Associativity:  "</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>ways_of_associativity <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"-way"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Line Size:      "</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>cache_line_size <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" bytes"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Sets:           "</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>number_of_sets <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>cache<font color="#990000">.</font>threads_per_cache <font color="#990000">&gt;</font> <font color="#993399">1</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+                std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Shared by:      "</font> <font color="#990000">&lt;&lt;</font> cache<font color="#990000">.</font>threads_per_cache <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" threads"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+            <font color="#FF0000">}</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    Inclusive:      "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>cache<font color="#990000">.</font>inclusive <font color="#990000">?</font> <font color="#FF0000">"Yes"</font> <font color="#990000">:</font> <font color="#FF0000">"No"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printFrequencyInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>frequency_info<font color="#990000">.</font>base_frequency_mhz <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">)</font> <b><font color="#0000FF">return</font></b><font color="#990000">;</font>
+
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Frequencies]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Base Frequency:     "</font> <font color="#990000">&lt;&lt;</font> frequency_info<font color="#990000">.</font>base_frequency_mhz <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MHz"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>frequency_info<font color="#990000">.</font>max_frequency_mhz <font color="#990000">&gt;</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Max Turbo:          "</font> <font color="#990000">&lt;&lt;</font> frequency_info<font color="#990000">.</font>max_frequency_mhz <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MHz"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>frequency_info<font color="#990000">.</font>bus_frequency_mhz <font color="#990000">&gt;</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#FF0000">{</font>
+            std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Bus Frequency:      "</font> <font color="#990000">&lt;&lt;</font> frequency_info<font color="#990000">.</font>bus_frequency_mhz <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MHz"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printAMDInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>vendor_info<font color="#990000">.</font>vendor_string <font color="#990000">!=</font> <font color="#FF0000">"AuthenticAMD"</font><font color="#990000">)</font> <b><font color="#0000FF">return</font></b><font color="#990000">;</font>
+
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[AMD Specific Features]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"SSE4a"</font><font color="#990000">,</font> amd_features<font color="#990000">.</font>sse4a<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"FMA4"</font><font color="#990000">,</font> amd_features<font color="#990000">.</font>fma4<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"3DNow!"</font><font color="#990000">,</font> amd_features<font color="#990000">.</font>threednow<font color="#990000">);</font>
+        <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><font color="#FF0000">"3DNow! Ext"</font><font color="#990000">,</font> amd_features<font color="#990000">.</font>threednow_ext<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printExtendedFunctionsInfo</font></b><font color="#990000">()</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">[Extended Functions]"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  Max Extended Function: 0x"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>hex
+                  <font color="#990000">&lt;&lt;</font> extended_info<font color="#990000">.</font>max_extended_function <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>dec <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+<b><font color="#0000FF">private</font></b><font color="#990000">:</font>
+    <font color="#009900">void</font> <b><font color="#000000">printHeader</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> std<font color="#990000">::</font>string<font color="#990000">&amp;</font> title<font color="#990000">)</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">╔══════════════════════════════════════════════════════════════╗"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"║ "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">58</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> title <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"║"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"╚══════════════════════════════════════════════════════════════╝"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <font color="#009900">void</font> <b><font color="#000000">printFeature</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> std<font color="#990000">::</font>string<font color="#990000">&amp;</font> name<font color="#990000">,</font> <font color="#009900">bool</font> enabled<font color="#990000">)</font> <b><font color="#0000FF">const</font></b> <font color="#FF0000">{</font>
+        std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">20</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">": "</font>
+                  <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>enabled <font color="#990000">?</font> <font color="#FF0000">"0"</font> <font color="#990000">:</font> <font color="#FF0000">"1"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+    <font color="#008080">CPUIDManager</font> cpuid<font color="#990000">;</font>
+    cpuid<font color="#990000">.</font><b><font color="#000000">printAllInfo</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>
