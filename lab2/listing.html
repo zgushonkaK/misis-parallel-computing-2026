@@ -1,0 +1,601 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;chrono&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cmath&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstring&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;fstream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;functional&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iomanip&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;random&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;vector&gt;</font>
+
+<b><font color="#0000FF">const</font></b> <font color="#008080">size_t</font> N <font color="#990000">=</font> <font color="#993399">2048</font><font color="#990000">;</font>
+<b><font color="#0000FF">const</font></b> <font color="#009900">float</font> EPSILON <font color="#990000">=</font> 1e<font color="#990000">-</font>1f<font color="#990000">;</font>
+
+<b><font color="#0000FF">using</font></b> Matrix <font color="#990000">=</font> std<font color="#990000">::</font>vector<font color="#990000">&lt;</font>std<font color="#990000">::</font>vector<font color="#990000">&lt;</font><font color="#009900">float</font><font color="#990000">&gt;&gt;;</font>
+
+<b><font color="#0000FF">struct</font></b> <font color="#008080">Results</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;std::pair&lt;std::string, double&gt;&gt;</font> basicAlgorithms<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;std::pair&lt;int, double&gt;&gt;</font> blockSizes<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;std::pair&lt;int, double&gt;&gt;</font> unrollingFactors<font color="#990000">;</font>
+  <font color="#009900">double</font> transposeTime<font color="#990000">;</font>
+  <font color="#009900">double</font> multiplyTimeTranspose<font color="#990000">;</font>
+  <font color="#009900">double</font> classicTime<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;std::tuple&lt;int, int, double&gt;&gt;</font> combinedResults<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<font color="#008080">Results</font> globalResults<font color="#990000">;</font>
+
+<font color="#009900">void</font> <b><font color="#000000">multiplyClassic</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <font color="#009900">float</font> s <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+        s <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k<font color="#990000">][</font>j<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+      C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">=</font> s<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#008080">Matrix</font> <b><font color="#000000">transpose</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> B<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  <font color="#008080">Matrix</font> <b><font color="#000000">Bt</font></b><font color="#990000">(</font>n<font color="#990000">,</font> std<font color="#990000">::</font>vector<font color="#990000">&lt;</font><font color="#009900">float</font><font color="#990000">&gt;(</font>n<font color="#990000">));</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+      Bt<font color="#990000">[</font>j<font color="#990000">][</font>i<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">];</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> Bt<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">multiplyTranspose</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  <font color="#008080">Matrix</font> Bt <font color="#990000">=</font> <b><font color="#000000">transpose</font></b><font color="#990000">(</font>B<font color="#990000">);</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <font color="#009900">float</font> s <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+        s <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> Bt<font color="#990000">[</font>j<font color="#990000">][</font>k<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+      C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">=</font> s<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">multiplyBuffered</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;float&gt;</font> <b><font color="#000000">tmp</font></b><font color="#990000">(</font>n<font color="#990000">);</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+      tmp<font color="#990000">[</font>k<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[</font>k<font color="#990000">][</font>j<font color="#990000">];</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <font color="#009900">float</font> s <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+        s <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> tmp<font color="#990000">[</font>k<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+      C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">=</font> s<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">multiplyBlock</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">,</font> <font color="#009900">int</font> blockSize<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+    std<font color="#990000">::</font><b><font color="#000000">fill</font></b><font color="#990000">(</font>C<font color="#990000">[</font>i<font color="#990000">].</font><b><font color="#000000">begin</font></b><font color="#990000">(),</font> C<font color="#990000">[</font>i<font color="#990000">].</font><b><font color="#000000">end</font></b><font color="#990000">(),</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> ii <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> ii <font color="#990000">&lt;</font> n<font color="#990000">;</font> ii <font color="#990000">+=</font> blockSize<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> jj <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> jj <font color="#990000">&lt;</font> n<font color="#990000">;</font> jj <font color="#990000">+=</font> blockSize<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> kk <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> kk <font color="#990000">&lt;</font> n<font color="#990000">;</font> kk <font color="#990000">+=</font> blockSize<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#008080">size_t</font> iMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>ii <font color="#990000">+</font> blockSize<font color="#990000">,</font> n<font color="#990000">);</font>
+        <font color="#008080">size_t</font> jMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>jj <font color="#990000">+</font> blockSize<font color="#990000">,</font> n<font color="#990000">);</font>
+        <font color="#008080">size_t</font> kMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>kk <font color="#990000">+</font> blockSize<font color="#990000">,</font> n<font color="#990000">);</font>
+
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> ii<font color="#990000">;</font> i <font color="#990000">&lt;</font> iMax<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+          <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> jj<font color="#990000">;</font> j <font color="#990000">&lt;</font> jMax<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#009900">float</font> s <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+            <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> kk<font color="#990000">;</font> k <font color="#990000">&lt;</font> kMax<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+              s <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k<font color="#990000">][</font>j<font color="#990000">];</font>
+            <font color="#FF0000">}</font>
+            C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">+=</font> s<font color="#990000">;</font>
+          <font color="#FF0000">}</font>
+        <font color="#FF0000">}</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><font color="#009900">int</font> UNROLL<font color="#990000">&gt;</font>
+<font color="#009900">void</font> <b><font color="#000000">multiplyBufferedUnrolled</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;float&gt;</font> <b><font color="#000000">tmp</font></b><font color="#990000">(</font>n<font color="#990000">);</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+      tmp<font color="#990000">[</font>k<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[</font>k<font color="#990000">][</font>j<font color="#990000">];</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <font color="#009900">float</font> s<font color="#990000">[</font>UNROLL<font color="#990000">]</font> <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">0</font><font color="#990000">.</font>0f<font color="#FF0000">}</font><font color="#990000">;</font>
+      <font color="#008080">size_t</font> k<font color="#990000">;</font>
+
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font>k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">+</font> UNROLL <font color="#990000">-</font> <font color="#993399">1</font> <font color="#990000">&lt;</font> n<font color="#990000">;</font> k <font color="#990000">+=</font> UNROLL<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> u <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> u <font color="#990000">&lt;</font> UNROLL<font color="#990000">;</font> <font color="#990000">++</font>u<font color="#990000">)</font> <font color="#FF0000">{</font>
+          s<font color="#990000">[</font>u<font color="#990000">]</font> <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k <font color="#990000">+</font> u<font color="#990000">]</font> <font color="#990000">*</font> tmp<font color="#990000">[</font>k <font color="#990000">+</font> u<font color="#990000">];</font>
+        <font color="#FF0000">}</font>
+      <font color="#FF0000">}</font>
+
+      <font color="#009900">float</font> total <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> u <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> u <font color="#990000">&lt;</font> UNROLL<font color="#990000">;</font> <font color="#990000">++</font>u<font color="#990000">)</font> <font color="#FF0000">{</font>
+        total <font color="#990000">+=</font> s<font color="#990000">[</font>u<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(;</font> k <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+        total <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> tmp<font color="#990000">[</font>k<font color="#990000">];</font>
+      <font color="#FF0000">}</font>
+
+      C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">=</font> total<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#008080">Matrix</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font><font color="#008080">size_t</font> n<font color="#990000">)</font> <font color="#FF0000">{</font> <b><font color="#0000FF">return</font></b> <b><font color="#000000">Matrix</font></b><font color="#990000">(</font>n<font color="#990000">,</font> std<font color="#990000">::</font>vector<font color="#990000">&lt;</font><font color="#009900">float</font><font color="#990000">&gt;(</font>n<font color="#990000">));</font> <font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">fillRandom</font></b><font color="#990000">(</font><font color="#008080">Matrix</font> <font color="#990000">&amp;</font>mat<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font><font color="#008080">random_device</font> rd<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">mt19937</font> <b><font color="#000000">gen</font></b><font color="#990000">(</font><b><font color="#000000">rd</font></b><font color="#990000">());</font>
+  std<font color="#990000">::</font><font color="#008080">uniform_real_distribution&lt;float&gt;</font> <b><font color="#000000">dis</font></b><font color="#990000">(-</font><font color="#993399">10</font><font color="#990000">.</font>0f<font color="#990000">,</font> <font color="#993399">10</font><font color="#990000">.</font>0f<font color="#990000">);</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>row <font color="#990000">:</font> mat<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>val <font color="#990000">:</font> row<font color="#990000">)</font> <font color="#FF0000">{</font>
+      val <font color="#990000">=</font> <b><font color="#000000">dis</font></b><font color="#990000">(</font>gen<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">setZero</font></b><font color="#990000">(</font><font color="#008080">Matrix</font> <font color="#990000">&amp;</font>mat<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>row <font color="#990000">:</font> mat<font color="#990000">)</font> <font color="#FF0000">{</font>
+    std<font color="#990000">::</font><b><font color="#000000">fill</font></b><font color="#990000">(</font>row<font color="#990000">.</font><b><font color="#000000">begin</font></b><font color="#990000">(),</font> row<font color="#990000">.</font><b><font color="#000000">end</font></b><font color="#990000">(),</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">);</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">bool</font> <b><font color="#000000">compareMatrices</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+  <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>n <font color="#990000">!=</font> B<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">())</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> j <font color="#990000">&lt;</font> n<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>std<font color="#990000">::</font><b><font color="#000000">fabs</font></b><font color="#990000">(</font>A<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">-</font> B<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">])</font> <font color="#990000">&gt;</font> EPSILON<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+      <font color="#FF0000">}</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+  <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">true</font></b><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><b><font color="#0000FF">class</font></b><font color="#990000">&gt;</font> <b><font color="#0000FF">struct</font></b> <font color="#008080">ExeTime</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><b><font color="#0000FF">class</font></b> <font color="#008080">R</font><font color="#990000">,</font> <b><font color="#0000FF">class</font></b><font color="#990000">...</font> Args<font color="#990000">&gt;</font> <b><font color="#0000FF">struct</font></b> <font color="#008080">ExeTime</font><font color="#990000">&lt;</font><b><font color="#000000">R</font></b><font color="#990000">(</font>Args<font color="#990000">...)&gt;</font> <font color="#FF0000">{</font>
+<b><font color="#0000FF">public</font></b><font color="#990000">:</font>
+  <b><font color="#000000">ExeTime</font></b><font color="#990000">(</font>std<font color="#990000">::</font><font color="#008080">function&lt;R(Args...)&gt;</font> func<font color="#990000">)</font> <font color="#990000">:</font> <b><font color="#000000">f_</font></b><font color="#990000">(</font>func<font color="#990000">)</font> <font color="#FF0000">{}</font>
+
+  std<font color="#990000">::</font><font color="#008080">pair&lt;R, double&gt;</font> <b><font color="#0000FF">operator</font></b><font color="#990000">()(</font>Args<font color="#990000">...</font> args<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+    <font color="#008080">R</font> result <font color="#990000">=</font> <b><font color="#000000">f_</font></b><font color="#990000">(</font>args<font color="#990000">...);</font>
+    <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+        std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+    <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+
+    <b><font color="#0000FF">return</font></b> <font color="#FF0000">{</font>result<font color="#990000">,</font> seconds<font color="#FF0000">}</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+<b><font color="#0000FF">private</font></b><font color="#990000">:</font>
+  std<font color="#990000">::</font><font color="#008080">function&lt;R(Args...)&gt;</font> f_<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><b><font color="#0000FF">class</font></b><font color="#990000">...</font> Args<font color="#990000">&gt;</font> <b><font color="#0000FF">struct</font></b> <font color="#008080">ExeTime</font><font color="#990000">&lt;</font><font color="#009900">void</font><font color="#990000">(</font>Args<font color="#990000">...)&gt;</font> <font color="#FF0000">{</font>
+<b><font color="#0000FF">public</font></b><font color="#990000">:</font>
+  <b><font color="#000000">ExeTime</font></b><font color="#990000">(</font>std<font color="#990000">::</font><font color="#008080">function&lt;void(Args...)&gt;</font> func<font color="#990000">)</font> <font color="#990000">:</font> <b><font color="#000000">f_</font></b><font color="#990000">(</font>func<font color="#990000">)</font> <font color="#FF0000">{}</font>
+
+  <font color="#009900">double</font> <b><font color="#0000FF">operator</font></b><font color="#990000">()(</font>Args<font color="#990000">...</font> args<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+    <b><font color="#000000">f_</font></b><font color="#990000">(</font>args<font color="#990000">...);</font>
+    <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+        std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+    <b><font color="#0000FF">return</font></b> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+
+<b><font color="#0000FF">private</font></b><font color="#990000">:</font>
+  std<font color="#990000">::</font><font color="#008080">function&lt;void(Args...)&gt;</font> f_<font color="#990000">;</font>
+<font color="#FF0000">}</font><font color="#990000">;</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><b><font color="#0000FF">class</font></b> <font color="#008080">R</font><font color="#990000">,</font> <b><font color="#0000FF">class</font></b><font color="#990000">...</font> Args<font color="#990000">&gt;</font>
+<font color="#008080">ExeTime&lt;R(Args...)&gt;</font> <b><font color="#000000">make_decorator</font></b><font color="#990000">(</font><b><font color="#000000">R</font></b> <font color="#990000">(*</font>f<font color="#990000">)(</font>Args<font color="#990000">...))</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">return</font></b> ExeTime<font color="#990000">&lt;</font><b><font color="#000000">R</font></b><font color="#990000">(</font>Args<font color="#990000">...)&gt;(</font>std<font color="#990000">::</font>function<font color="#990000">&lt;</font><b><font color="#000000">R</font></b><font color="#990000">(</font>Args<font color="#990000">...)&gt;(</font>f<font color="#990000">));</font>
+<font color="#FF0000">}</font>
+
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><b><font color="#0000FF">class</font></b><font color="#990000">...</font> Args<font color="#990000">&gt;</font>
+<font color="#008080">ExeTime&lt;void(Args...)&gt;</font> <b><font color="#000000">make_decorator</font></b><font color="#990000">(</font><font color="#009900">void</font> <font color="#990000">(*</font>f<font color="#990000">)(</font>Args<font color="#990000">...))</font> <font color="#FF0000">{</font>
+  <b><font color="#0000FF">return</font></b> ExeTime<font color="#990000">&lt;</font><font color="#009900">void</font><font color="#990000">(</font>Args<font color="#990000">...)&gt;(</font>std<font color="#990000">::</font>function<font color="#990000">&lt;</font><font color="#009900">void</font><font color="#990000">(</font>Args<font color="#990000">...)&gt;(</font>f<font color="#990000">));</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">measureAndPrint</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> std<font color="#990000">::</font><font color="#008080">string</font> <font color="#990000">&amp;</font>name<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font>
+                     <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">,</font>
+                     <font color="#009900">void</font> <font color="#990000">(*</font>func<font color="#990000">)(</font><b><font color="#0000FF">const</font></b> Matrix <font color="#990000">&amp;,</font> <b><font color="#0000FF">const</font></b> Matrix <font color="#990000">&amp;,</font> Matrix <font color="#990000">&amp;))</font> <font color="#FF0000">{</font>
+  <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> decorator <font color="#990000">=</font> <b><font color="#000000">make_decorator</font></b><font color="#990000">(</font>func<font color="#990000">);</font>
+  <font color="#009900">double</font> seconds <font color="#990000">=</font> <b><font color="#000000">decorator</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+  <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+  globalResults<font color="#990000">.</font>basicAlgorithms<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font>name<font color="#990000">,</font> gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">40</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">measureAndPrintWithParam</font></b><font color="#990000">(</font>
+    <b><font color="#0000FF">const</font></b> std<font color="#990000">::</font><font color="#008080">string</font> <font color="#990000">&amp;</font>name<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">,</font> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>C<font color="#990000">,</font>
+    <font color="#009900">void</font> <font color="#990000">(*</font>func<font color="#990000">)(</font><b><font color="#0000FF">const</font></b> Matrix <font color="#990000">&amp;,</font> <b><font color="#0000FF">const</font></b> Matrix <font color="#990000">&amp;,</font> Matrix <font color="#990000">&amp;,</font> <font color="#009900">int</font><font color="#990000">),</font> <font color="#009900">int</font> param<font color="#990000">)</font> <font color="#FF0000">{</font>
+  <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+  <b><font color="#000000">func</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">,</font> param<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+  <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+      std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+  <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+  <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">35</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> name <font color="#990000">+</font> <font color="#FF0000">" (S="</font> <font color="#990000">+</font> std<font color="#990000">::</font><b><font color="#000000">to_string</font></b><font color="#990000">(</font>param<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">")"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">testCorrectness</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Verifying correctness of all algorithms"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_classic <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">multiplyClassic</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_classic<font color="#990000">);</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Classic algorithm - OK"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_transpose <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">multiplyTranspose</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_transpose<font color="#990000">);</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"With transpose: "</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">compareMatrices</font></b><font color="#990000">(</font>C_classic<font color="#990000">,</font> C_transpose<font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"OK"</font> <font color="#990000">:</font> <font color="#FF0000">"FAIL"</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_buffered <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">multiplyBuffered</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_buffered<font color="#990000">);</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"With buffering: "</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">compareMatrices</font></b><font color="#990000">(</font>C_classic<font color="#990000">,</font> C_buffered<font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"OK"</font> <font color="#990000">:</font> <font color="#FF0000">"FAIL"</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_block <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">multiplyBlock</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_block<font color="#990000">,</font> <font color="#993399">64</font><font color="#990000">);</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Block (S=64): "</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">compareMatrices</font></b><font color="#990000">(</font>C_classic<font color="#990000">,</font> C_block<font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"OK"</font> <font color="#990000">:</font> <font color="#FF0000">"FAIL"</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">testBlockSizeVariations</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Testing block multiplication with different block sizes"</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;int&gt;</font> blockSizes <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">1</font><font color="#990000">,</font> <font color="#993399">2</font><font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">,</font> <font color="#993399">8</font><font color="#990000">,</font> <font color="#993399">16</font><font color="#990000">,</font> <font color="#993399">32</font><font color="#990000">,</font> <font color="#993399">64</font><font color="#990000">,</font> <font color="#993399">128</font><font color="#990000">,</font> <font color="#993399">256</font><font color="#990000">,</font> <font color="#993399">512</font><font color="#990000">,</font> <font color="#993399">1024</font><font color="#FF0000">}</font><font color="#990000">;</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> S <font color="#990000">:</font> blockSizes<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>S <font color="#990000">&gt;</font> <b><font color="#0000FF">static_cast</font></b><font color="#990000">&lt;</font><font color="#009900">int</font><font color="#990000">&gt;(</font>N<font color="#990000">))</font>
+      <b><font color="#0000FF">continue</font></b><font color="#990000">;</font>
+    <font color="#008080">Matrix</font> C <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+    <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C<font color="#990000">);</font>
+    <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+    <b><font color="#000000">multiplyBlock</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">,</font> S<font color="#990000">);</font>
+    <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+        std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+    <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+    <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+    globalResults<font color="#990000">.</font>blockSizes<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font>S<font color="#990000">,</font> gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">35</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Block (S="</font> <font color="#990000">+</font> std<font color="#990000">::</font><b><font color="#000000">to_string</font></b><font color="#990000">(</font>S<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">")"</font>
+              <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+              <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">testLoopUnrolling</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Testing loop unrolling (buffered method)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_base <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> decorator <font color="#990000">=</font> <b><font color="#000000">make_decorator</font></b><font color="#990000">(</font>multiplyBuffered<font color="#990000">);</font>
+  <font color="#009900">double</font> base_seconds <font color="#990000">=</font> <b><font color="#000000">decorator</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_base<font color="#990000">);</font>
+  <font color="#009900">double</font> base_gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>base_seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+  globalResults<font color="#990000">.</font>unrollingFactors<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font><font color="#993399">1</font><font color="#990000">,</font> base_gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">35</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Buffered (M=1)"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> base_seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> base_gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  std<font color="#990000">::</font><font color="#008080">vector&lt;int&gt;</font> unrollFactors <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">2</font><font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">,</font> <font color="#993399">8</font><font color="#990000">,</font> <font color="#993399">16</font><font color="#FF0000">}</font><font color="#990000">;</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> M <font color="#990000">:</font> unrollFactors<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <font color="#008080">Matrix</font> C <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+    <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C<font color="#990000">);</font>
+    std<font color="#990000">::</font><font color="#008080">string</font> name <font color="#990000">=</font> <font color="#FF0000">"Buffered (M="</font> <font color="#990000">+</font> std<font color="#990000">::</font><b><font color="#000000">to_string</font></b><font color="#990000">(</font>M<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">")"</font><font color="#990000">;</font>
+
+    <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">switch</font></b> <font color="#990000">(</font>M<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">case</font></b> <font color="#993399">2</font><font color="#990000">:</font>
+      multiplyBufferedUnrolled<font color="#990000">&lt;</font><font color="#993399">2</font><font color="#990000">&gt;(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+      <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">case</font></b> <font color="#993399">4</font><font color="#990000">:</font>
+      multiplyBufferedUnrolled<font color="#990000">&lt;</font><font color="#993399">4</font><font color="#990000">&gt;(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+      <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">case</font></b> <font color="#993399">8</font><font color="#990000">:</font>
+      multiplyBufferedUnrolled<font color="#990000">&lt;</font><font color="#993399">8</font><font color="#990000">&gt;(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+      <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">case</font></b> <font color="#993399">16</font><font color="#990000">:</font>
+      multiplyBufferedUnrolled<font color="#990000">&lt;</font><font color="#993399">16</font><font color="#990000">&gt;(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+      <b><font color="#0000FF">break</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">default</font></b><font color="#990000">:</font>
+      <b><font color="#000000">multiplyBuffered</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+    <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+        std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+    <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+    <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+    globalResults<font color="#990000">.</font>unrollingFactors<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font>M<font color="#990000">,</font> gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+    std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">35</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+              <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+              <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">testTransposeImpact</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Impact of transpose operation on performance"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+  <font color="#008080">Matrix</font> Bt <font color="#990000">=</font> <b><font color="#000000">transpose</font></b><font color="#990000">(</font>B<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> mid <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+  <font color="#008080">Matrix</font> C_transpose_only <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">multiplyTranspose</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_transpose_only<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+  <b><font color="#0000FF">auto</font></b> transpose_duration <font color="#990000">=</font>
+      std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>mid <font color="#990000">-</font> start<font color="#990000">);</font>
+  <font color="#009900">double</font> transpose_seconds <font color="#990000">=</font> transpose_duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+
+  <b><font color="#0000FF">auto</font></b> multiply_duration <font color="#990000">=</font>
+      std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> mid<font color="#990000">);</font>
+  <font color="#009900">double</font> multiply_seconds <font color="#990000">=</font> multiply_duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+
+  <font color="#009900">double</font> total_seconds <font color="#990000">=</font> transpose_seconds <font color="#990000">+</font> multiply_seconds<font color="#990000">;</font>
+  <font color="#009900">double</font> gflops_total <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>total_seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+  <font color="#009900">double</font> gflops_multiply <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>multiply_seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+  globalResults<font color="#990000">.</font>transposeTime <font color="#990000">=</font> transpose_seconds<font color="#990000">;</font>
+  globalResults<font color="#990000">.</font>multiplyTimeTranspose <font color="#990000">=</font> multiply_seconds<font color="#990000">;</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Transpose time: "</font> <font color="#990000">&lt;&lt;</font> transpose_seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Multiplication time (without transpose): "</font> <font color="#990000">&lt;&lt;</font> multiply_seconds
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> gflops_multiply <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Total time (with transpose): "</font> <font color="#990000">&lt;&lt;</font> total_seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> gflops_total <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">testCombinedOptimizations</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#008080">Matrix</font> <font color="#990000">&amp;</font>B<font color="#990000">)</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Combined test (block + loop unrolling)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;int&gt;</font> blockSizes <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">32</font><font color="#990000">,</font> <font color="#993399">64</font><font color="#990000">,</font> <font color="#993399">128</font><font color="#FF0000">}</font><font color="#990000">;</font>
+  std<font color="#990000">::</font><font color="#008080">vector&lt;int&gt;</font> unrollFactors <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">2</font><font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">,</font> <font color="#993399">8</font><font color="#FF0000">}</font><font color="#990000">;</font>
+
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> S <font color="#990000">:</font> blockSizes<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> M <font color="#990000">:</font> unrollFactors<font color="#990000">)</font> <font color="#FF0000">{</font>
+      <font color="#008080">Matrix</font> C <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+      <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C<font color="#990000">);</font>
+      std<font color="#990000">::</font><font color="#008080">string</font> name <font color="#990000">=</font>
+          <font color="#FF0000">"Block S="</font> <font color="#990000">+</font> std<font color="#990000">::</font><b><font color="#000000">to_string</font></b><font color="#990000">(</font>S<font color="#990000">)</font> <font color="#990000">+</font> <font color="#FF0000">" M="</font> <font color="#990000">+</font> std<font color="#990000">::</font><b><font color="#000000">to_string</font></b><font color="#990000">(</font>M<font color="#990000">);</font>
+
+      <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+
+      <font color="#008080">size_t</font> n <font color="#990000">=</font> A<font color="#990000">.</font><b><font color="#000000">size</font></b><font color="#990000">();</font>
+      <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> ii <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> ii <font color="#990000">&lt;</font> n<font color="#990000">;</font> ii <font color="#990000">+=</font> S<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> jj <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> jj <font color="#990000">&lt;</font> n<font color="#990000">;</font> jj <font color="#990000">+=</font> S<font color="#990000">)</font> <font color="#FF0000">{</font>
+          <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> kk <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> kk <font color="#990000">&lt;</font> n<font color="#990000">;</font> kk <font color="#990000">+=</font> S<font color="#990000">)</font> <font color="#FF0000">{</font>
+            <font color="#008080">size_t</font> iMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>ii <font color="#990000">+</font> S<font color="#990000">,</font> n<font color="#990000">);</font>
+            <font color="#008080">size_t</font> jMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>jj <font color="#990000">+</font> S<font color="#990000">,</font> n<font color="#990000">);</font>
+            <font color="#008080">size_t</font> kMax <font color="#990000">=</font> std<font color="#990000">::</font><b><font color="#000000">min</font></b><font color="#990000">(</font>kk <font color="#990000">+</font> S<font color="#990000">,</font> n<font color="#990000">);</font>
+
+            <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> ii<font color="#990000">;</font> i <font color="#990000">&lt;</font> iMax<font color="#990000">;</font> <font color="#990000">++</font>i<font color="#990000">)</font> <font color="#FF0000">{</font>
+              <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> j <font color="#990000">=</font> jj<font color="#990000">;</font> j <font color="#990000">&lt;</font> jMax<font color="#990000">;</font> <font color="#990000">++</font>j<font color="#990000">)</font> <font color="#FF0000">{</font>
+                <font color="#009900">float</font> s<font color="#990000">[</font><font color="#993399">8</font><font color="#990000">]</font> <font color="#990000">=</font> <font color="#FF0000">{</font><font color="#993399">0</font><font color="#990000">.</font>0f<font color="#FF0000">}</font><font color="#990000">;</font>
+                <font color="#008080">size_t</font> k<font color="#990000">;</font>
+
+                <b><font color="#0000FF">for</font></b> <font color="#990000">(</font>k <font color="#990000">=</font> kk<font color="#990000">;</font> k <font color="#990000">+</font> M <font color="#990000">-</font> <font color="#993399">1</font> <font color="#990000">&lt;</font> kMax<font color="#990000">;</font> k <font color="#990000">+=</font> M<font color="#990000">)</font> <font color="#FF0000">{</font>
+                  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> u <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> u <font color="#990000">&lt;</font> M<font color="#990000">;</font> <font color="#990000">++</font>u<font color="#990000">)</font> <font color="#FF0000">{</font>
+                    s<font color="#990000">[</font>u<font color="#990000">]</font> <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k <font color="#990000">+</font> u<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k <font color="#990000">+</font> u<font color="#990000">][</font>j<font color="#990000">];</font>
+                  <font color="#FF0000">}</font>
+                <font color="#FF0000">}</font>
+
+                <font color="#009900">float</font> total <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+                <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> u <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> u <font color="#990000">&lt;</font> M<font color="#990000">;</font> <font color="#990000">++</font>u<font color="#990000">)</font> <font color="#FF0000">{</font>
+                  total <font color="#990000">+=</font> s<font color="#990000">[</font>u<font color="#990000">];</font>
+                <font color="#FF0000">}</font>
+                <b><font color="#0000FF">for</font></b> <font color="#990000">(;</font> k <font color="#990000">&lt;</font> kMax<font color="#990000">;</font> <font color="#990000">++</font>k<font color="#990000">)</font> <font color="#FF0000">{</font>
+                  total <font color="#990000">+=</font> A<font color="#990000">[</font>i<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k<font color="#990000">][</font>j<font color="#990000">];</font>
+                <font color="#FF0000">}</font>
+
+                C<font color="#990000">[</font>i<font color="#990000">][</font>j<font color="#990000">]</font> <font color="#990000">+=</font> total<font color="#990000">;</font>
+              <font color="#FF0000">}</font>
+            <font color="#FF0000">}</font>
+          <font color="#FF0000">}</font>
+        <font color="#FF0000">}</font>
+      <font color="#FF0000">}</font>
+
+      <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+      <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+          std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+      <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+      <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+
+      globalResults<font color="#990000">.</font>combinedResults<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font>S<font color="#990000">,</font> M<font color="#990000">,</font> gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+      std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">30</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> name
+                <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed
+                <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+                <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+                <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+  <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">saveToXML</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font><font color="#008080">ofstream</font> <b><font color="#000000">file</font></b><font color="#990000">(</font><font color="#FF0000">"results.xml"</font><font color="#990000">);</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;?xml version=</font><font color="#CC33CC">\"</font><font color="#FF0000">1.0</font><font color="#CC33CC">\"</font><font color="#FF0000"> encoding=</font><font color="#CC33CC">\"</font><font color="#FF0000">UTF-8</font><font color="#CC33CC">\"</font><font color="#FF0000">?&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;performance_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;matrix_size&gt;"</font> <font color="#990000">&lt;&lt;</font> N <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/matrix_size&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;floating_point_operations&gt;"</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font>
+       <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/floating_point_operations&gt;</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;basic_algorithms&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>alg <font color="#990000">:</font> globalResults<font color="#990000">.</font>basicAlgorithms<font color="#990000">)</font> <font color="#FF0000">{</font>
+    file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;algorithm name=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> alg<font color="#990000">.</font>first <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> gflops=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font>
+         <font color="#990000">&lt;&lt;</font> alg<font color="#990000">.</font>second <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> /&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/basic_algorithms&gt;</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;block_size_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>bs <font color="#990000">:</font> globalResults<font color="#990000">.</font>blockSizes<font color="#990000">)</font> <font color="#FF0000">{</font>
+    file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;block size=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> bs<font color="#990000">.</font>first <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> gflops=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> bs<font color="#990000">.</font>second
+         <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> /&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/block_size_results&gt;</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;unrolling_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>ur <font color="#990000">:</font> globalResults<font color="#990000">.</font>unrollingFactors<font color="#990000">)</font> <font color="#FF0000">{</font>
+    file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;unroll_factor m=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> ur<font color="#990000">.</font>first <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> gflops=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> ur<font color="#990000">.</font>second
+         <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> /&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/unrolling_results&gt;</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;transpose_impact&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;transpose_time&gt;"</font> <font color="#990000">&lt;&lt;</font> globalResults<font color="#990000">.</font>transposeTime
+       <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/transpose_time&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;multiply_time_without_transpose&gt;"</font>
+       <font color="#990000">&lt;&lt;</font> globalResults<font color="#990000">.</font>multiplyTimeTranspose
+       <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/multiply_time_without_transpose&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <font color="#009900">double</font> classic_gflops <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>alg <font color="#990000">:</font> globalResults<font color="#990000">.</font>basicAlgorithms<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>alg<font color="#990000">.</font>first <font color="#990000">==</font> <font color="#FF0000">"1. Classic"</font><font color="#990000">)</font>
+      classic_gflops <font color="#990000">=</font> alg<font color="#990000">.</font>second<font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  <font color="#009900">double</font> transpose_gflops <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>alg <font color="#990000">:</font> globalResults<font color="#990000">.</font>basicAlgorithms<font color="#990000">)</font> <font color="#FF0000">{</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>alg<font color="#990000">.</font>first <font color="#990000">==</font> <font color="#FF0000">"2. With transpose"</font><font color="#990000">)</font>
+      transpose_gflops <font color="#990000">=</font> alg<font color="#990000">.</font>second<font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;classic_gflops&gt;"</font> <font color="#990000">&lt;&lt;</font> classic_gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/classic_gflops&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;transpose_gflops&gt;"</font> <font color="#990000">&lt;&lt;</font> transpose_gflops
+       <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/transpose_gflops&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/transpose_impact&gt;</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;combined_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <b><font color="#0000FF">auto</font></b> <font color="#990000">&amp;</font>comb <font color="#990000">:</font> globalResults<font color="#990000">.</font>combinedResults<font color="#990000">)</font> <font color="#FF0000">{</font>
+    file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"    &lt;combined block_size=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>get<font color="#990000">&lt;</font><font color="#993399">0</font><font color="#990000">&gt;(</font>comb<font color="#990000">)</font>
+         <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> unroll_factor=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>get<font color="#990000">&lt;</font><font color="#993399">1</font><font color="#990000">&gt;(</font>comb<font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> gflops=</font><font color="#CC33CC">\"</font><font color="#FF0000">"</font>
+         <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>get<font color="#990000">&lt;</font><font color="#993399">2</font><font color="#990000">&gt;(</font>comb<font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\"</font><font color="#FF0000"> /&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  <font color="#FF0000">}</font>
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"  &lt;/combined_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+  file <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"&lt;/performance_results&gt;</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+  file<font color="#990000">.</font><b><font color="#000000">close</font></b><font color="#990000">();</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Results saved to results.xml"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font> <font color="#FF0000">{</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">);</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Matrix size: "</font> <font color="#990000">&lt;&lt;</font> N <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"x"</font> <font color="#990000">&lt;&lt;</font> N <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Computational volume: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">/</font> <font color="#993399">1e9</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS"</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Memory per matrix: "</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>N <font color="#990000">*</font> N <font color="#990000">*</font> <b><font color="#0000FF">sizeof</font></b><font color="#990000">(</font><font color="#009900">float</font><font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font><font color="#993399">1024.0</font> <font color="#990000">*</font> <font color="#993399">1024.0</font><font color="#990000">))</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MB"</font>
+            <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> A <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <font color="#008080">Matrix</font> B <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">fillRandom</font></b><font color="#990000">(</font>A<font color="#990000">);</font>
+  <b><font color="#000000">fillRandom</font></b><font color="#990000">(</font>B<font color="#990000">);</font>
+
+  <b><font color="#000000">testCorrectness</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">);</font>
+
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Performance comparison of basic algorithms"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+
+  <font color="#008080">Matrix</font> C_classic <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">measureAndPrint</font></b><font color="#990000">(</font><font color="#FF0000">"1. Classic"</font><font color="#990000">,</font> A<font color="#990000">,</font> B<font color="#990000">,</font> C_classic<font color="#990000">,</font> multiplyClassic<font color="#990000">);</font>
+
+  <font color="#008080">Matrix</font> C_transpose <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">measureAndPrint</font></b><font color="#990000">(</font><font color="#FF0000">"2. With transpose"</font><font color="#990000">,</font> A<font color="#990000">,</font> B<font color="#990000">,</font> C_transpose<font color="#990000">,</font> multiplyTranspose<font color="#990000">);</font>
+
+  <font color="#008080">Matrix</font> C_buffered <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">measureAndPrint</font></b><font color="#990000">(</font><font color="#FF0000">"3. Buffered"</font><font color="#990000">,</font> A<font color="#990000">,</font> B<font color="#990000">,</font> C_buffered<font color="#990000">,</font> multiplyBuffered<font color="#990000">);</font>
+
+  <font color="#008080">Matrix</font> C_block <font color="#990000">=</font> <b><font color="#000000">createMatrix</font></b><font color="#990000">(</font>N<font color="#990000">);</font>
+  <b><font color="#000000">setZero</font></b><font color="#990000">(</font>C_block<font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> start <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+  <b><font color="#000000">multiplyBlock</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">,</font> C_block<font color="#990000">,</font> <font color="#993399">64</font><font color="#990000">);</font>
+  <b><font color="#0000FF">auto</font></b> end <font color="#990000">=</font> std<font color="#990000">::</font>chrono<font color="#990000">::</font>high_resolution_clock<font color="#990000">::</font><b><font color="#000000">now</font></b><font color="#990000">();</font>
+  <b><font color="#0000FF">auto</font></b> duration <font color="#990000">=</font>
+      std<font color="#990000">::</font>chrono<font color="#990000">::</font>duration_cast<font color="#990000">&lt;</font>std<font color="#990000">::</font>chrono<font color="#990000">::</font>microseconds<font color="#990000">&gt;(</font>end <font color="#990000">-</font> start<font color="#990000">);</font>
+  <font color="#009900">double</font> seconds <font color="#990000">=</font> duration<font color="#990000">.</font><b><font color="#000000">count</font></b><font color="#990000">()</font> <font color="#990000">/</font> <font color="#993399">1</font><font color="#FF0000">'000'</font><font color="#993399">000.0</font><font color="#990000">;</font>
+  <font color="#009900">double</font> gflops <font color="#990000">=</font> <font color="#990000">(</font><font color="#993399">2.0</font> <font color="#990000">*</font> N <font color="#990000">*</font> N <font color="#990000">*</font> N<font color="#990000">)</font> <font color="#990000">/</font> <font color="#990000">(</font>seconds <font color="#990000">*</font> <font color="#993399">1e9</font><font color="#990000">);</font>
+  std<font color="#990000">::</font>cout <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>left <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">35</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"4. Block (S=64)"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" time: "</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">8</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> seconds <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" s"</font>
+            <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ("</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setw</font></b><font color="#990000">(</font><font color="#993399">6</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>fixed <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font><b><font color="#000000">setprecision</font></b><font color="#990000">(</font><font color="#993399">2</font><font color="#990000">)</font>
+            <font color="#990000">&lt;&lt;</font> gflops <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GFLOPS)"</font> <font color="#990000">&lt;&lt;</font> std<font color="#990000">::</font>endl<font color="#990000">;</font>
+  globalResults<font color="#990000">.</font>basicAlgorithms<font color="#990000">.</font><b><font color="#000000">push_back</font></b><font color="#990000">(</font><font color="#FF0000">{</font><font color="#FF0000">"4. Block"</font><font color="#990000">,</font> gflops<font color="#FF0000">}</font><font color="#990000">);</font>
+
+  <b><font color="#000000">testBlockSizeVariations</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">);</font>
+  <b><font color="#000000">testLoopUnrolling</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">);</font>
+  <b><font color="#000000">testTransposeImpact</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">);</font>
+  <b><font color="#000000">testCombinedOptimizations</font></b><font color="#990000">(</font>A<font color="#990000">,</font> B<font color="#990000">);</font>
+
+  <b><font color="#000000">saveToXML</font></b><font color="#990000">();</font>
+
+  <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>
