@@ -1,0 +1,74 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstdlib&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;ctime&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cmath&gt;</font>
+
+<b><font color="#0000FF">using</font></b> <b><font color="#0000FF">namespace</font></b> std<font color="#990000">;</font>
+
+<b><font color="#0000FF">extern</font></b> <font color="#FF0000">"C"</font> <font color="#009900">void</font> <b><font color="#000000">vec_mul_cuda</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">);</font>
+<b><font color="#0000FF">extern</font></b> <font color="#FF0000">"C"</font> <font color="#009900">void</font> <b><font color="#000000">vec_add_cuda</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">);</font>
+
+<b><font color="#0000FF">const</font></b> <font color="#009900">int</font> N <font color="#990000">=</font> <font color="#993399">1024</font><font color="#990000">;</font>
+
+<font color="#009900">float</font> a<font color="#990000">[</font>N<font color="#990000">],</font> b<font color="#990000">[</font>N<font color="#990000">];</font>
+<font color="#009900">float</font> c_gpu_mul<font color="#990000">[</font>N<font color="#990000">],</font> c_cpu_mul<font color="#990000">[</font>N<font color="#990000">];</font>
+<font color="#009900">float</font> c_gpu_add<font color="#990000">[</font>N<font color="#990000">],</font> c_cpu_add<font color="#990000">[</font>N<font color="#990000">];</font>
+
+<font color="#009900">void</font> <b><font color="#000000">vec_mul_cpu</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> i<font color="#990000">++)</font>
+        c<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> a<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">*</font> b<font color="#990000">[</font>i<font color="#990000">];</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">void</font> <b><font color="#000000">vec_add_cpu</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> i<font color="#990000">++)</font>
+        c<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> a<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">+</font> b<font color="#990000">[</font>i<font color="#990000">];</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">bool</font> <b><font color="#000000">compare</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>x<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>y<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">,</font> <font color="#009900">float</font> eps <font color="#990000">=</font> 1e<font color="#990000">-</font>4f<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> i<font color="#990000">++)</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font><b><font color="#000000">fabs</font></b><font color="#990000">(</font>x<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">-</font> y<font color="#990000">[</font>i<font color="#990000">])</font> <font color="#990000">&gt;</font> eps<font color="#990000">)</font>
+            <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">true</font></b><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font>
+<font color="#FF0000">{</font>
+    <b><font color="#000000">srand</font></b><font color="#990000">((</font><font color="#009900">unsigned</font><font color="#990000">)</font><b><font color="#000000">time</font></b><font color="#990000">(</font>NULL<font color="#990000">));</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> N<font color="#990000">;</font> i<font color="#990000">++)</font>
+    <font color="#FF0000">{</font>
+        a<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">float</font><font color="#990000">)(</font><b><font color="#000000">rand</font></b><font color="#990000">()</font> <font color="#990000">%</font> <font color="#993399">100</font><font color="#990000">)</font> <font color="#990000">/</font> <font color="#993399">10</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+        b<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">float</font><font color="#990000">)(</font><b><font color="#000000">rand</font></b><font color="#990000">()</font> <font color="#990000">%</font> <font color="#993399">100</font><font color="#990000">)</font> <font color="#990000">/</font> <font color="#993399">10</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#000000">vec_mul_cuda</font></b><font color="#990000">(</font>a<font color="#990000">,</font> b<font color="#990000">,</font> c_gpu_mul<font color="#990000">,</font> N<font color="#990000">);</font>
+    <b><font color="#000000">vec_mul_cpu</font></b> <font color="#990000">(</font>a<font color="#990000">,</font> b<font color="#990000">,</font> c_cpu_mul<font color="#990000">,</font> N<font color="#990000">);</font>
+
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Multiplication (first 10 elements):</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"GPU: "</font><font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">10</font><font color="#990000">;</font> i<font color="#990000">++)</font> cout <font color="#990000">&lt;&lt;</font> c_gpu_mul<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" "</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">CPU: "</font><font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">10</font><font color="#990000">;</font> i<font color="#990000">++)</font> cout <font color="#990000">&lt;&lt;</font> c_cpu_mul<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" "</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Mul match: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">compare</font></b><font color="#990000">(</font>c_gpu_mul<font color="#990000">,</font> c_cpu_mul<font color="#990000">,</font> N<font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+    <b><font color="#000000">vec_add_cuda</font></b><font color="#990000">(</font>a<font color="#990000">,</font> b<font color="#990000">,</font> c_gpu_add<font color="#990000">,</font> N<font color="#990000">);</font>
+    <b><font color="#000000">vec_add_cpu</font></b> <font color="#990000">(</font>a<font color="#990000">,</font> b<font color="#990000">,</font> c_cpu_add<font color="#990000">,</font> N<font color="#990000">);</font>
+
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Addition (first 10 elements):</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"GPU: "</font><font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">10</font><font color="#990000">;</font> i<font color="#990000">++)</font> cout <font color="#990000">&lt;&lt;</font> c_gpu_add<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" "</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">CPU: "</font><font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> <font color="#993399">10</font><font color="#990000">;</font> i<font color="#990000">++)</font> cout <font color="#990000">&lt;&lt;</font> c_cpu_add<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" "</font><font color="#990000">;</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Add match: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">compare</font></b><font color="#990000">(</font>c_gpu_add<font color="#990000">,</font> c_cpu_add<font color="#990000">,</font> N<font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">Done.</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>

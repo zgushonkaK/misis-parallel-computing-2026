@@ -1,0 +1,58 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda_runtime.h&gt;</font>
+
+<b><font color="#0000FF">using</font></b> <b><font color="#0000FF">namespace</font></b> std<font color="#990000">;</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> device_count <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+    <b><font color="#000000">cudaGetDeviceCount</font></b><font color="#990000">(&amp;</font>device_count<font color="#990000">);</font>
+
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"CUDA device count: "</font> <font color="#990000">&lt;&lt;</font> device_count <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> device_count<font color="#990000">;</font> i<font color="#990000">++)</font>
+    <font color="#FF0000">{</font>
+        <font color="#008080">cudaDeviceProp</font> dp<font color="#990000">;</font>
+        <b><font color="#000000">cudaGetDeviceProperties</font></b><font color="#990000">(&amp;</font>dp<font color="#990000">,</font> i<font color="#990000">);</font>
+
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"===== Device "</font> <font color="#990000">&lt;&lt;</font> i <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" =====</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Name: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Total global memory: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>dp<font color="#990000">.</font>totalGlobalMem <font color="#990000">/</font> <font color="#990000">(</font><font color="#993399">1024</font> <font color="#990000">*</font> <font color="#993399">1024</font><font color="#990000">))</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MB</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Total const memory: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>totalConstMem <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" B</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Shared memory per block: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>sharedMemPerBlock <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" B</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Registers per block: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>regsPerBlock <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"WARP size: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>warpSize <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Max threads per block: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxThreadsPerBlock <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Max block dimensions: "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxThreadsDim<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" x "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxThreadsDim<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" x "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxThreadsDim<font color="#990000">[</font><font color="#993399">2</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Max grid dimensions:  "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxGridSize<font color="#990000">[</font><font color="#993399">0</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" x "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxGridSize<font color="#990000">[</font><font color="#993399">1</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" x "</font>
+             <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>maxGridSize<font color="#990000">[</font><font color="#993399">2</font><font color="#990000">]</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Compute capability: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>major <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"."</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>minor <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"SM (multiprocessor) count: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>multiProcessorCount <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Asynchronous engines count: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>asyncEngineCount <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Copying and computing in parallel: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>dp<font color="#990000">.</font>deviceOverlap <font color="#990000">?</font> <font color="#993399">1</font> <font color="#990000">:</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Core clock: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>dp<font color="#990000">.</font>clockRate <font color="#990000">/</font> <font color="#993399">1000</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MHz</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Memory clock: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>dp<font color="#990000">.</font>memoryClockRate <font color="#990000">/</font> <font color="#993399">1000</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MHz</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Memory bus width: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>memoryBusWidth <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" bits</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"L2 cache size: "</font> <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>dp<font color="#990000">.</font>l2CacheSize <font color="#990000">/</font> <font color="#993399">1024</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" KB</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>

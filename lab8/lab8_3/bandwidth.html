@@ -1,0 +1,192 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;iostream&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cstring&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda_runtime.h&gt;</font>
+
+<b><font color="#0000FF">using</font></b> <b><font color="#0000FF">namespace</font></b> std<font color="#990000">;</font>
+
+<i><font color="#9A1900">// Размер блока для копирования: 100 МБ</font></i>
+<b><font color="#0000FF">const</font></b> <font color="#008080">size_t</font> BLOCK_SIZE <font color="#990000">=</font> <font color="#993399">100</font> <font color="#990000">*</font> <font color="#993399">1024</font> <font color="#990000">*</font> <font color="#993399">1024</font><font color="#990000">;</font>
+<b><font color="#0000FF">const</font></b> <font color="#009900">int</font> REPEATS <font color="#990000">=</font> <font color="#993399">5</font><font color="#990000">;</font> <i><font color="#9A1900">// число повторов для усреднения</font></i>
+
+<i><font color="#9A1900">// Печать пропускной способности (ГБ/с)</font></i>
+<b><font color="#0000FF">static</font></b> <font color="#009900">void</font> <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">char</font> <font color="#990000">*</font>name<font color="#990000">,</font> <font color="#009900">float</font> ms<font color="#990000">,</font> <font color="#008080">size_t</font> bytes<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">double</font> seconds <font color="#990000">=</font> ms <font color="#990000">/</font> <font color="#993399">1000.0</font><font color="#990000">;</font>
+    <font color="#009900">double</font> gb <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">double</font><font color="#990000">)</font>bytes <font color="#990000">/</font> <font color="#990000">(</font><font color="#993399">1024.0</font> <font color="#990000">*</font> <font color="#993399">1024.0</font> <font color="#990000">*</font> <font color="#993399">1024.0</font><font color="#990000">);</font>
+    cout <font color="#990000">&lt;&lt;</font> name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">": time = "</font> <font color="#990000">&lt;&lt;</font> ms <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" ms, bandwidth = "</font>
+         <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>gb <font color="#990000">/</font> seconds<font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" GB/s</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// Проверка корректности копирования (эталон записан 0xAB)</font></i>
+<b><font color="#0000FF">static</font></b> <font color="#009900">bool</font> <b><font color="#000000">verify</font></b><font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>buf<font color="#990000">,</font> <font color="#008080">size_t</font> n<font color="#990000">,</font> <font color="#009900">unsigned</font> <font color="#009900">char</font> pattern<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#008080">size_t</font> i <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> i <font color="#990000">&lt;</font> n<font color="#990000">;</font> i<font color="#990000">++)</font>
+        <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>buf<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">!=</font> pattern<font color="#990000">)</font> <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">false</font></b><font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <b><font color="#0000FF">true</font></b><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<font color="#009900">int</font> <b><font color="#000000">main</font></b><font color="#990000">()</font>
+<font color="#FF0000">{</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"CUDA memory bandwidth test (block size = "</font>
+         <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font>BLOCK_SIZE <font color="#990000">/</font> <font color="#990000">(</font><font color="#993399">1024</font> <font color="#990000">*</font> <font color="#993399">1024</font><font color="#990000">))</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" MB)</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+    <font color="#009900">int</font> device_count <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+    <b><font color="#000000">cudaGetDeviceCount</font></b><font color="#990000">(&amp;</font>device_count<font color="#990000">);</font>
+    cout <font color="#990000">&lt;&lt;</font> device_count <font color="#990000">&lt;&lt;</font> <font color="#FF0000">" CUDA device(s) found</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>device_count <font color="#990000">==</font> <font color="#993399">0</font><font color="#990000">)</font> <font color="#FF0000">{</font> cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"No CUDA device found.</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font> <b><font color="#0000FF">return</font></b> <font color="#993399">1</font><font color="#990000">;</font> <font color="#FF0000">}</font>
+
+    <font color="#008080">cudaDeviceProp</font> dp<font color="#990000">;</font>
+    <b><font color="#000000">cudaGetDeviceProperties</font></b><font color="#990000">(&amp;</font>dp<font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">);</font>
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"GPU 0: "</font> <font color="#990000">&lt;&lt;</font> dp<font color="#990000">.</font>name <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+    <i><font color="#9A1900">// События для замеров</font></i>
+    <font color="#008080">cudaEvent_t</font> start<font color="#990000">,</font> stop<font color="#990000">;</font>
+    <b><font color="#000000">cudaEventCreate</font></b><font color="#990000">(&amp;</font>start<font color="#990000">);</font>
+    <b><font color="#000000">cudaEventCreate</font></b><font color="#990000">(&amp;</font>stop<font color="#990000">);</font>
+
+    <i><font color="#9A1900">// ---------- 1. RAM -&gt; RAM ----------</font></i>
+    <font color="#FF0000">{</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>src <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">char</font><font color="#990000">*)</font><b><font color="#000000">malloc</font></b><font color="#990000">(</font>BLOCK_SIZE<font color="#990000">);</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>dst <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">char</font><font color="#990000">*)</font><b><font color="#000000">malloc</font></b><font color="#990000">(</font>BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>src<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>dst<font color="#990000">,</font> <font color="#993399">0x00</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <font color="#009900">float</font> total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>dst<font color="#990000">,</font> src<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyHostToHost<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+            <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Host -&gt; Host (RAM -&gt; RAM) correct: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">verify</font></b><font color="#990000">(</font>dst<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Host -&gt; Host"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#000000">free</font></b><font color="#990000">(</font>src<font color="#990000">);</font> <b><font color="#000000">free</font></b><font color="#990000">(</font>dst<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <i><font color="#9A1900">// ---------- 2. Host (pageable) &lt;-&gt; Device ----------</font></i>
+    <font color="#FF0000">{</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>h <font color="#990000">=</font> <font color="#990000">(</font><font color="#009900">unsigned</font> <font color="#009900">char</font><font color="#990000">*)</font><b><font color="#000000">malloc</font></b><font color="#990000">(</font>BLOCK_SIZE<font color="#990000">);</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>d <font color="#990000">=</font> NULL<font color="#990000">;</font>
+        <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>d<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <i><font color="#9A1900">// H-&gt;D</font></i>
+        <font color="#009900">float</font> total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>d<font color="#990000">,</font> h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Host -&gt; Device (pageable)"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <i><font color="#9A1900">// D-&gt;H</font></i>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>h<font color="#990000">,</font> d<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyDeviceToHost<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Device -&gt; Host (pageable) correct: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">verify</font></b><font color="#990000">(</font>h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Device -&gt; Host (pageable)"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        <b><font color="#000000">free</font></b><font color="#990000">(</font>h<font color="#990000">);</font> <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>d<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <i><font color="#9A1900">// ---------- 3. Host (page-locked) &lt;-&gt; Device ----------</font></i>
+    <font color="#FF0000">{</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>h <font color="#990000">=</font> NULL<font color="#990000">;</font>
+        <b><font color="#000000">cudaMallocHost</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>d <font color="#990000">=</font> NULL<font color="#990000">;</font>
+        <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>d<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <i><font color="#9A1900">// H-&gt;D</font></i>
+        <font color="#009900">float</font> total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>d<font color="#990000">,</font> h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Host -&gt; Device (page-locked)"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <i><font color="#9A1900">// D-&gt;H</font></i>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>h<font color="#990000">,</font> d<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyDeviceToHost<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Device -&gt; Host (page-locked) correct: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">verify</font></b><font color="#990000">(</font>h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Device -&gt; Host (page-locked)"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        <b><font color="#000000">cudaFreeHost</font></b><font color="#990000">(</font>h<font color="#990000">);</font> <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>d<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <i><font color="#9A1900">// ---------- 4. Device -&gt; Device ----------</font></i>
+    <font color="#FF0000">{</font>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>d1 <font color="#990000">=</font> NULL<font color="#990000">,</font> <font color="#990000">*</font>d2 <font color="#990000">=</font> NULL<font color="#990000">;</font>
+        <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>d1<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>d2<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+
+        <i><font color="#9A1900">// Заполняем d1 через page-locked для скорости</font></i>
+        <font color="#009900">unsigned</font> <font color="#009900">char</font> <font color="#990000">*</font>h <font color="#990000">=</font> NULL<font color="#990000">;</font>
+        <b><font color="#000000">cudaMallocHost</font></b><font color="#990000">((</font><font color="#009900">void</font><font color="#990000">**)&amp;</font>h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>d1<font color="#990000">,</font> h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+
+        <font color="#009900">float</font> total_ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> r <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> r <font color="#990000">&lt;</font> REPEATS<font color="#990000">;</font> r<font color="#990000">++)</font> <font color="#FF0000">{</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+            <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>d2<font color="#990000">,</font> d1<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyDeviceToDevice<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventRecord</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <b><font color="#000000">cudaEventSynchronize</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+            <font color="#009900">float</font> ms <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> <b><font color="#000000">cudaEventElapsedTime</font></b><font color="#990000">(&amp;</font>ms<font color="#990000">,</font> start<font color="#990000">,</font> stop<font color="#990000">);</font>
+            total_ms <font color="#990000">+=</font> ms<font color="#990000">;</font>
+        <font color="#FF0000">}</font>
+
+        <i><font color="#9A1900">// Проверка: копируем d2 обратно в host</font></i>
+        <b><font color="#000000">memset</font></b><font color="#990000">(</font>h<font color="#990000">,</font> <font color="#993399">0</font><font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>h<font color="#990000">,</font> d2<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> cudaMemcpyDeviceToHost<font color="#990000">);</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Device -&gt; Device correct: "</font>
+             <font color="#990000">&lt;&lt;</font> <font color="#990000">(</font><b><font color="#000000">verify</font></b><font color="#990000">(</font>h<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">,</font> <font color="#993399">0xAB</font><font color="#990000">)</font> <font color="#990000">?</font> <font color="#FF0000">"YES"</font> <font color="#990000">:</font> <font color="#FF0000">"NO"</font><font color="#990000">)</font> <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+        <b><font color="#000000">print_bw</font></b><font color="#990000">(</font><font color="#FF0000">"Device -&gt; Device"</font><font color="#990000">,</font> total_ms <font color="#990000">/</font> REPEATS<font color="#990000">,</font> BLOCK_SIZE<font color="#990000">);</font>
+        cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+
+        <b><font color="#000000">cudaFreeHost</font></b><font color="#990000">(</font>h<font color="#990000">);</font> <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>d1<font color="#990000">);</font> <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>d2<font color="#990000">);</font>
+    <font color="#FF0000">}</font>
+
+    <b><font color="#000000">cudaEventDestroy</font></b><font color="#990000">(</font>start<font color="#990000">);</font>
+    <b><font color="#000000">cudaEventDestroy</font></b><font color="#990000">(</font>stop<font color="#990000">);</font>
+
+    cout <font color="#990000">&lt;&lt;</font> <font color="#FF0000">"Done.</font><font color="#CC33CC">\n</font><font color="#FF0000">"</font><font color="#990000">;</font>
+    <b><font color="#0000FF">return</font></b> <font color="#993399">0</font><font color="#990000">;</font>
+<font color="#FF0000">}</font>
+</tt></pre>

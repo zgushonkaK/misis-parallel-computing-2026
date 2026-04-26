@@ -1,0 +1,77 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda_runtime.h&gt;</font>
+
+<i><font color="#9A1900">// Ядро поэлементного умножения векторов</font></i>
+__global__ <font color="#008080">void</font> <b><font color="#000000">VecMulKernel</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> i <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x <font color="#990000">+</font> blockIdx<font color="#990000">.</font>x <font color="#990000">*</font> blockDim<font color="#990000">.</font>x<font color="#990000">;</font>
+    c<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> a<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">*</font> b<font color="#990000">[</font>i<font color="#990000">];</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// Ядро поэлементного сложения векторов (второй пункт задания)</font></i>
+__global__ <font color="#008080">void</font> <b><font color="#000000">VecAddKernel</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> i <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x <font color="#990000">+</font> blockIdx<font color="#990000">.</font>x <font color="#990000">*</font> blockDim<font color="#990000">.</font>x<font color="#990000">;</font>
+    c<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">=</font> a<font color="#990000">[</font>i<font color="#990000">]</font> <font color="#990000">+</font> b<font color="#990000">[</font>i<font color="#990000">];</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// Обертка: умножение векторов на GPU</font></i>
+<b><font color="#0000FF">extern</font></b> <font color="#FF0000">"C"</font> <font color="#009900">void</font> <b><font color="#000000">vec_mul_cuda</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> SizeInBytes <font color="#990000">=</font> n <font color="#990000">*</font> <b><font color="#0000FF">sizeof</font></b><font color="#990000">(</font><font color="#009900">float</font><font color="#990000">);</font>
+
+    <font color="#009900">float</font> <font color="#990000">*</font>a_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+    <font color="#009900">float</font> <font color="#990000">*</font>b_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+    <font color="#009900">float</font> <font color="#990000">*</font>c_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>a_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>b_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>c_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>a_gpu<font color="#990000">,</font> a<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>b_gpu<font color="#990000">,</font> b<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+
+    <font color="#008080">dim3</font> threads <font color="#990000">=</font> <b><font color="#000000">dim3</font></b><font color="#990000">(</font><font color="#993399">512</font><font color="#990000">,</font> <font color="#993399">1</font><font color="#990000">);</font>
+    <font color="#008080">dim3</font> blocks  <font color="#990000">=</font> <b><font color="#000000">dim3</font></b><font color="#990000">(</font>n <font color="#990000">/</font> threads<font color="#990000">.</font>x<font color="#990000">,</font> <font color="#993399">1</font><font color="#990000">);</font>
+
+    VecMulKernel<font color="#990000">&lt;&lt;&lt;</font>blocks<font color="#990000">,</font> threads<font color="#990000">&gt;&gt;&gt;(</font>a_gpu<font color="#990000">,</font> b_gpu<font color="#990000">,</font> c_gpu<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>c<font color="#990000">,</font> c_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyDeviceToHost<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>a_gpu<font color="#990000">);</font>
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>b_gpu<font color="#990000">);</font>
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>c_gpu<font color="#990000">);</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// Обертка: сложение векторов на GPU</font></i>
+<b><font color="#0000FF">extern</font></b> <font color="#FF0000">"C"</font> <font color="#009900">void</font> <b><font color="#000000">vec_add_cuda</font></b><font color="#990000">(</font><font color="#009900">float</font> <font color="#990000">*</font>a<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>b<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>c<font color="#990000">,</font> <font color="#009900">int</font> n<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> SizeInBytes <font color="#990000">=</font> n <font color="#990000">*</font> <b><font color="#0000FF">sizeof</font></b><font color="#990000">(</font><font color="#009900">float</font><font color="#990000">);</font>
+
+    <font color="#009900">float</font> <font color="#990000">*</font>a_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+    <font color="#009900">float</font> <font color="#990000">*</font>b_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+    <font color="#009900">float</font> <font color="#990000">*</font>c_gpu <font color="#990000">=</font> NULL<font color="#990000">;</font>
+
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>a_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>b_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+    <b><font color="#000000">cudaMalloc</font></b><font color="#990000">((</font><font color="#009900">void</font> <font color="#990000">**)&amp;</font>c_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>a_gpu<font color="#990000">,</font> a<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>b_gpu<font color="#990000">,</font> b<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyHostToDevice<font color="#990000">);</font>
+
+    <font color="#008080">dim3</font> threads <font color="#990000">=</font> <b><font color="#000000">dim3</font></b><font color="#990000">(</font><font color="#993399">512</font><font color="#990000">,</font> <font color="#993399">1</font><font color="#990000">);</font>
+    <font color="#008080">dim3</font> blocks  <font color="#990000">=</font> <b><font color="#000000">dim3</font></b><font color="#990000">(</font>n <font color="#990000">/</font> threads<font color="#990000">.</font>x<font color="#990000">,</font> <font color="#993399">1</font><font color="#990000">);</font>
+
+    VecAddKernel<font color="#990000">&lt;&lt;&lt;</font>blocks<font color="#990000">,</font> threads<font color="#990000">&gt;&gt;&gt;(</font>a_gpu<font color="#990000">,</font> b_gpu<font color="#990000">,</font> c_gpu<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaMemcpy</font></b><font color="#990000">(</font>c<font color="#990000">,</font> c_gpu<font color="#990000">,</font> SizeInBytes<font color="#990000">,</font> cudaMemcpyDeviceToHost<font color="#990000">);</font>
+
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>a_gpu<font color="#990000">);</font>
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>b_gpu<font color="#990000">);</font>
+    <b><font color="#000000">cudaFree</font></b><font color="#990000">(</font>c_gpu<font color="#990000">);</font>
+<font color="#FF0000">}</font>
+</tt></pre>

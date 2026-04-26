@@ -1,0 +1,148 @@
+<!-- Generator: GNU source-highlight 3.1.9
+by Lorenzo Bettini
+http://www.lorenzobettini.it
+http://www.gnu.org/software/src-highlite -->
+<pre><tt><b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda.h&gt;</font>
+<b><font color="#000080">#include</font></b> <font color="#FF0000">&lt;cuda_runtime.h&gt;</font>
+
+<i><font color="#9A1900">// =====================================================================</font></i>
+<i><font color="#9A1900">// 1. Наивное (классическое) умножение — каждый поток один элемент C</font></i>
+<i><font color="#9A1900">// =====================================================================</font></i>
+__global__ <font color="#008080">void</font> <b><font color="#000000">MatrMulKernel</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>B<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>C<font color="#990000">,</font> <font color="#009900">int</font> N<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <font color="#009900">int</font> i <font color="#990000">=</font> blockIdx<font color="#990000">.</font>y <font color="#990000">*</font> blockDim<font color="#990000">.</font>y <font color="#990000">+</font> threadIdx<font color="#990000">.</font>y<font color="#990000">;</font> <i><font color="#9A1900">// строка</font></i>
+    <font color="#009900">int</font> j <font color="#990000">=</font> blockIdx<font color="#990000">.</font>x <font color="#990000">*</font> blockDim<font color="#990000">.</font>x <font color="#990000">+</font> threadIdx<font color="#990000">.</font>x<font color="#990000">;</font> <i><font color="#9A1900">// столбец</font></i>
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>i <font color="#990000">&gt;=</font> N <font color="#990000">||</font> j <font color="#990000">&gt;=</font> N<font color="#990000">)</font> <b><font color="#0000FF">return</font></b><font color="#990000">;</font>
+
+    <font color="#009900">float</font> sum <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> N<font color="#990000">;</font> k<font color="#990000">++)</font>
+        sum <font color="#990000">+=</font> A<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> k<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">];</font>
+    C<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">]</font> <font color="#990000">=</font> sum<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// =====================================================================</font></i>
+<i><font color="#9A1900">// 2. Кэширование строки матрицы A в разделяемой памяти</font></i>
+<i><font color="#9A1900">//    Запуск: &lt;&lt;&lt;dim3(N), dim3(N)&gt;&gt;&gt; — один блок на строку C</font></i>
+<i><font color="#9A1900">// =====================================================================</font></i>
+__global__ <font color="#008080">void</font> <b><font color="#000000">MatrMulRowCacheKernel</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>B<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>C<font color="#990000">,</font> <font color="#009900">int</font> N<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">extern</font></b> __shared__ <font color="#008080">float</font> rowA<font color="#990000">[];</font> <i><font color="#9A1900">// размер N float'ов</font></i>
+
+    <font color="#009900">int</font> i <font color="#990000">=</font> blockIdx<font color="#990000">.</font>x<font color="#990000">;</font>     <i><font color="#9A1900">// строка</font></i>
+    <font color="#009900">int</font> j <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x<font color="#990000">;</font>    <i><font color="#9A1900">// столбец</font></i>
+
+    <i><font color="#9A1900">// Все потоки блока совместно грузят строку A[i, *] в shared</font></i>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> j<font color="#990000">;</font> k <font color="#990000">&lt;</font> N<font color="#990000">;</font> k <font color="#990000">+=</font> blockDim<font color="#990000">.</font>x<font color="#990000">)</font>
+        rowA<font color="#990000">[</font>k<font color="#990000">]</font> <font color="#990000">=</font> A<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> k<font color="#990000">];</font>
+    <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>j <font color="#990000">&lt;</font> N<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#009900">float</font> sum <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> N<font color="#990000">;</font> k<font color="#990000">++)</font>
+            sum <font color="#990000">+=</font> rowA<font color="#990000">[</font>k<font color="#990000">]</font> <font color="#990000">*</font> B<font color="#990000">[</font>k <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">];</font>
+        C<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">]</font> <font color="#990000">=</font> sum<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// =====================================================================</font></i>
+<i><font color="#9A1900">// 3. Кэширование столбца матрицы B в разделяемой памяти</font></i>
+<i><font color="#9A1900">//    Запуск: &lt;&lt;&lt;dim3(N), dim3(N)&gt;&gt;&gt; — один блок на столбец C</font></i>
+<i><font color="#9A1900">// =====================================================================</font></i>
+__global__ <font color="#008080">void</font> <b><font color="#000000">MatrMulColCacheKernel</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>B<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>C<font color="#990000">,</font> <font color="#009900">int</font> N<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    <b><font color="#0000FF">extern</font></b> __shared__ <font color="#008080">float</font> colB<font color="#990000">[];</font> <i><font color="#9A1900">// размер N float'ов</font></i>
+
+    <font color="#009900">int</font> j <font color="#990000">=</font> blockIdx<font color="#990000">.</font>x<font color="#990000">;</font>     <i><font color="#9A1900">// столбец</font></i>
+    <font color="#009900">int</font> i <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x<font color="#990000">;</font>    <i><font color="#9A1900">// строка</font></i>
+
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> i<font color="#990000">;</font> k <font color="#990000">&lt;</font> N<font color="#990000">;</font> k <font color="#990000">+=</font> blockDim<font color="#990000">.</font>x<font color="#990000">)</font>
+        colB<font color="#990000">[</font>k<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[</font>k <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">];</font>
+    <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+
+    <b><font color="#0000FF">if</font></b> <font color="#990000">(</font>i <font color="#990000">&lt;</font> N<font color="#990000">)</font> <font color="#FF0000">{</font>
+        <font color="#009900">float</font> sum <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> N<font color="#990000">;</font> k<font color="#990000">++)</font>
+            sum <font color="#990000">+=</font> A<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> k<font color="#990000">]</font> <font color="#990000">*</font> colB<font color="#990000">[</font>k<font color="#990000">];</font>
+        C<font color="#990000">[</font>i <font color="#990000">*</font> N <font color="#990000">+</font> j<font color="#990000">]</font> <font color="#990000">=</font> sum<font color="#990000">;</font>
+    <font color="#FF0000">}</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// =====================================================================</font></i>
+<i><font color="#9A1900">// 4. Блочное умножение через разделяемую память</font></i>
+<i><font color="#9A1900">//    Запуск: &lt;&lt;&lt;dim3(N/S, N/S), dim3(S, S)&gt;&gt;&gt;</font></i>
+<i><font color="#9A1900">//    Размер блока S задаётся через шаблон</font></i>
+<i><font color="#9A1900">// =====================================================================</font></i>
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><font color="#009900">int</font> S<font color="#990000">&gt;</font>
+__global__ <font color="#008080">void</font> <b><font color="#000000">MatrMulBlockKernel</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>B<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>C<font color="#990000">,</font> <font color="#009900">int</font> N<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    __shared__ <font color="#008080">float</font> As<font color="#990000">[</font>S<font color="#990000">][</font>S<font color="#990000">];</font>
+    __shared__ <font color="#008080">float</font> Bs<font color="#990000">[</font>S<font color="#990000">][</font>S<font color="#990000">];</font>
+
+    <font color="#009900">int</font> bx <font color="#990000">=</font> blockIdx<font color="#990000">.</font>x<font color="#990000">,</font>  by <font color="#990000">=</font> blockIdx<font color="#990000">.</font>y<font color="#990000">;</font>
+    <font color="#009900">int</font> tx <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x<font color="#990000">,</font> ty <font color="#990000">=</font> threadIdx<font color="#990000">.</font>y<font color="#990000">;</font>
+
+    <font color="#009900">int</font> row <font color="#990000">=</font> by <font color="#990000">*</font> S <font color="#990000">+</font> ty<font color="#990000">;</font> <i><font color="#9A1900">// глобальная строка элемента C</font></i>
+    <font color="#009900">int</font> col <font color="#990000">=</font> bx <font color="#990000">*</font> S <font color="#990000">+</font> tx<font color="#990000">;</font> <i><font color="#9A1900">// глобальный столбец элемента C</font></i>
+
+    <font color="#009900">float</font> sum <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+
+    <i><font color="#9A1900">// Проход по подматрицам</font></i>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> z <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> z <font color="#990000">&lt;</font> N <font color="#990000">/</font> S<font color="#990000">;</font> z<font color="#990000">++)</font> <font color="#FF0000">{</font>
+        <i><font color="#9A1900">// Загрузка блока A[by, z] и B[z, bx] в shared</font></i>
+        As<font color="#990000">[</font>ty<font color="#990000">][</font>tx<font color="#990000">]</font> <font color="#990000">=</font> A<font color="#990000">[</font>row <font color="#990000">*</font> N <font color="#990000">+</font> <font color="#990000">(</font>z <font color="#990000">*</font> S <font color="#990000">+</font> tx<font color="#990000">)];</font>
+        Bs<font color="#990000">[</font>ty<font color="#990000">][</font>tx<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[(</font>z <font color="#990000">*</font> S <font color="#990000">+</font> ty<font color="#990000">)</font> <font color="#990000">*</font> N <font color="#990000">+</font> col<font color="#990000">];</font>
+        <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+
+        <i><font color="#9A1900">// Умножение блоков</font></i>
+<b><font color="#000080">        #pragma</font></b> unroll
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> S<font color="#990000">;</font> k<font color="#990000">++)</font>
+            sum <font color="#990000">+=</font> As<font color="#990000">[</font>ty<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> Bs<font color="#990000">[</font>k<font color="#990000">][</font>tx<font color="#990000">];</font>
+
+        <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+    <font color="#FF0000">}</font>
+    C<font color="#990000">[</font>row <font color="#990000">*</font> N <font color="#990000">+</font> col<font color="#990000">]</font> <font color="#990000">=</font> sum<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// =====================================================================</font></i>
+<i><font color="#9A1900">// 5. Блочное умножение с раскруткой цикла (UNROLL = 2/4/8 внутри #pragma unroll)</font></i>
+<i><font color="#9A1900">//    Здесь отдельная версия, где unroll явный — используется то же тело,</font></i>
+<i><font color="#9A1900">//    но с указанием шага раскрутки параметром шаблона UR.</font></i>
+<i><font color="#9A1900">// =====================================================================</font></i>
+<b><font color="#0000FF">template</font></b> <font color="#990000">&lt;</font><font color="#009900">int</font> S<font color="#990000">,</font> <font color="#009900">int</font> UR<font color="#990000">&gt;</font>
+__global__ <font color="#008080">void</font> <b><font color="#000000">MatrMulBlockKernelUnroll</font></b><font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>A<font color="#990000">,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font> <font color="#990000">*</font>B<font color="#990000">,</font> <font color="#009900">float</font> <font color="#990000">*</font>C<font color="#990000">,</font> <font color="#009900">int</font> N<font color="#990000">)</font>
+<font color="#FF0000">{</font>
+    __shared__ <font color="#008080">float</font> As<font color="#990000">[</font>S<font color="#990000">][</font>S<font color="#990000">];</font>
+    __shared__ <font color="#008080">float</font> Bs<font color="#990000">[</font>S<font color="#990000">][</font>S<font color="#990000">];</font>
+
+    <font color="#009900">int</font> bx <font color="#990000">=</font> blockIdx<font color="#990000">.</font>x<font color="#990000">,</font>  by <font color="#990000">=</font> blockIdx<font color="#990000">.</font>y<font color="#990000">;</font>
+    <font color="#009900">int</font> tx <font color="#990000">=</font> threadIdx<font color="#990000">.</font>x<font color="#990000">,</font> ty <font color="#990000">=</font> threadIdx<font color="#990000">.</font>y<font color="#990000">;</font>
+    <font color="#009900">int</font> row <font color="#990000">=</font> by <font color="#990000">*</font> S <font color="#990000">+</font> ty<font color="#990000">;</font>
+    <font color="#009900">int</font> col <font color="#990000">=</font> bx <font color="#990000">*</font> S <font color="#990000">+</font> tx<font color="#990000">;</font>
+
+    <font color="#009900">float</font> sum <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">.</font>0f<font color="#990000">;</font>
+    <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> z <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> z <font color="#990000">&lt;</font> N <font color="#990000">/</font> S<font color="#990000">;</font> z<font color="#990000">++)</font> <font color="#FF0000">{</font>
+        As<font color="#990000">[</font>ty<font color="#990000">][</font>tx<font color="#990000">]</font> <font color="#990000">=</font> A<font color="#990000">[</font>row <font color="#990000">*</font> N <font color="#990000">+</font> <font color="#990000">(</font>z <font color="#990000">*</font> S <font color="#990000">+</font> tx<font color="#990000">)];</font>
+        Bs<font color="#990000">[</font>ty<font color="#990000">][</font>tx<font color="#990000">]</font> <font color="#990000">=</font> B<font color="#990000">[(</font>z <font color="#990000">*</font> S <font color="#990000">+</font> ty<font color="#990000">)</font> <font color="#990000">*</font> N <font color="#990000">+</font> col<font color="#990000">];</font>
+        <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+
+<b><font color="#000080">        #pragma</font></b> unroll UR
+        <b><font color="#0000FF">for</font></b> <font color="#990000">(</font><font color="#009900">int</font> k <font color="#990000">=</font> <font color="#993399">0</font><font color="#990000">;</font> k <font color="#990000">&lt;</font> S<font color="#990000">;</font> k<font color="#990000">++)</font>
+            sum <font color="#990000">+=</font> As<font color="#990000">[</font>ty<font color="#990000">][</font>k<font color="#990000">]</font> <font color="#990000">*</font> Bs<font color="#990000">[</font>k<font color="#990000">][</font>tx<font color="#990000">];</font>
+
+        <b><font color="#000000">__syncthreads</font></b><font color="#990000">();</font>
+    <font color="#FF0000">}</font>
+    C<font color="#990000">[</font>row <font color="#990000">*</font> N <font color="#990000">+</font> col<font color="#990000">]</font> <font color="#990000">=</font> sum<font color="#990000">;</font>
+<font color="#FF0000">}</font>
+
+<i><font color="#9A1900">// Явные инстанциации шаблонов для используемых размеров блока</font></i>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernel<font color="#990000">&lt;</font><font color="#993399">8</font><font color="#990000">&gt;</font> <font color="#990000">(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernel<font color="#990000">&lt;</font><font color="#993399">16</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernel<font color="#990000">&lt;</font><font color="#993399">32</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">16</font><font color="#990000">,</font> <font color="#993399">2</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">16</font><font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">16</font><font color="#990000">,</font> <font color="#993399">8</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">32</font><font color="#990000">,</font> <font color="#993399">2</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">32</font><font color="#990000">,</font> <font color="#993399">4</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+<b><font color="#0000FF">template</font></b> __global__ <font color="#008080">void</font> MatrMulBlockKernelUnroll<font color="#990000">&lt;</font><font color="#993399">32</font><font color="#990000">,</font> <font color="#993399">8</font><font color="#990000">&gt;(</font><b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <b><font color="#0000FF">const</font></b> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">float</font><font color="#990000">*,</font> <font color="#009900">int</font><font color="#990000">);</font>
+</tt></pre>
